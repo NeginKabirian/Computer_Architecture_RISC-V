@@ -1,11 +1,39 @@
 #include "memory.h"
 
-Memory::Memory() {}
+#include <stdexcept>
 
-Memory::Memory(size_t size) : mem(size, 0) {}
+Memory::Memory() : data(MEM_SIZE, 0) {}
 
-uint32_t Memory::read(uint32_t address) const {
-    if (address / 4 < mem.size())
-        return mem[address / 4];
-    throw std::out_of_range("Invalid memory read");
+uint8_t Memory::read8(uint32_t addr) const {
+    check_address(addr);
+    return data[addr];
+}
+
+uint32_t Memory::read32(uint32_t addr) const {
+    check_address(addr);
+    if (addr + 3 >= MEM_SIZE) throw std::out_of_range("32-bit read out of bounds");
+    return data[addr] |
+           (data[addr+1] << 8) |
+           (data[addr+2] << 16) |
+           (data[addr+3] << 24);
+}
+
+void Memory::write8(uint32_t addr, uint8_t value) {
+    check_address(addr);
+    data[addr] = value;
+}
+
+void Memory::write32(uint32_t addr, uint32_t value) {
+    check_address(addr);
+    if (addr + 3 >= MEM_SIZE) throw std::out_of_range("32-bit write out of bounds");
+    data[addr]     = value & 0xFF;
+    data[addr + 1] = (value >> 8) & 0xFF;
+    data[addr + 2] = (value >> 16) & 0xFF;
+    data[addr + 3] = (value >> 24) & 0xFF;
+}
+
+void Memory::check_address(uint32_t addr) const {
+    if (addr >= MEM_SIZE) {
+        throw std::out_of_range("Memory access out of range");
+    }
 }
