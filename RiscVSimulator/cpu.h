@@ -1,10 +1,29 @@
 #ifndef CPU_H
 #define CPU_H
 
-class CPU
-{
+#include "alu.h"
+#include "memory.h"
+
+#include <RegisterFile.h>
+#include <cstdint>
+
+
+class CPU {
 public:
-    CPU();
+    uint32_t PC = 0x1000;
+    uint32_t IR = 0;
+    uint32_t DR = 0;
+    uint16_t AR = 0;
+    uint32_t A = 0, B = 0;
+    uint32_t Imm = 0;
+    ALU Alu;
+    Memory* memory = nullptr;
+    RegisterFile* regFile = nullptr;
+    CPU(Memory* mem, RegisterFile* rf);
+    void fetch();
+    void decode();
+    void execute();
+
 };
 
 #endif // CPU_H

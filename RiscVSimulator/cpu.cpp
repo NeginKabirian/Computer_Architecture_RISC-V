@@ -1,3 +1,8 @@
 #include "cpu.h"
 
-CPU::CPU() {}
+void CPU::fetch() {
+    AR = PC;
+    IR = memory->read32(AR);
+    PC += 4;
+}
+
