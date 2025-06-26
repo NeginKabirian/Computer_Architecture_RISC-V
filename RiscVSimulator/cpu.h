@@ -6,6 +6,7 @@
 
 #include <RegisterFile.h>
 #include <cstdint>
+#include "DecodedInstruction.h"
 
 
 class CPU {
@@ -21,7 +22,7 @@ public:
     RegisterFile* regFile = nullptr;
     CPU(Memory* mem, RegisterFile* rf);
     void fetch();
-    void decode();
+    DecodedInstruction decode(uint32_t instruction);
     void execute();
 
 };

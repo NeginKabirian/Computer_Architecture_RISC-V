@@ -17,6 +17,7 @@ SOURCES += \
     registerfile.cpp
 
 HEADERS += \
+    DecodedInstruction.h \
     alu.h \
     cpu.h \
     mainwindow.h \
