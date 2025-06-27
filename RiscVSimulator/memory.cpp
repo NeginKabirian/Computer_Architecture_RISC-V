@@ -32,6 +32,20 @@ void Memory::write32(uint32_t addr, uint32_t value) {
     data[addr + 3] = (value >> 24) & 0xFF;
 }
 
+uint16_t Memory::read16(uint32_t addr) const {
+    check_address(addr);
+    check_address(addr + 1);
+    return data[addr] | (data[addr + 1] << 8);
+}
+
+void Memory::write16(uint32_t addr, uint16_t value) {
+    check_address(addr);
+    check_address(addr + 1);
+    data[addr] = value & 0xFF;
+    data[addr + 1] = (value >> 8) & 0xFF;
+}
+
+
 void Memory::check_address(uint32_t addr) const {
     if (addr >= MEM_SIZE) {
         throw std::out_of_range("Memory access out of range");

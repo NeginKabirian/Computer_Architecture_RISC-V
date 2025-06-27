@@ -45,7 +45,7 @@ typedef enum inst {
     mulh,
     mulhsu,
     mulhu,
-    div,
+    _div,
     divu,
     rem,
     remu,

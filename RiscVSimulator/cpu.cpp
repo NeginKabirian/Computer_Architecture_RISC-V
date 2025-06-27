@@ -1,217 +1,888 @@
 #include "cpu.h"
 
-void CPU::fetch() {
-    AR = PC;
-    IR = memory->read32(AR);
-    PC += 4;
-}
+CPU::CPU(Memory* mem, RegisterFile* rf) : regFile(rf), memory(mem) {}
 
-DecodedInstruction CPU::decode(uint32_t instruction) {
-    DecodedInstruction di;
 
+void CPU::decode(uint32_t instruction) {
     uint8_t opcode = instruction & 0x7F;
-    uint8_t rd = (instruction >> 7) & 0x1F;
+
+    currentInstruction.opcode = inst::invalid;
+    currentInstruction.rd = (instruction >> 7) & 0x1F;
     uint8_t funct3 = (instruction >> 12) & 0x07;
-    uint8_t rs1 = (instruction >> 15) & 0x1F;
-    uint8_t rs2 = (instruction >> 20) & 0x1F;
+    currentInstruction.rs1 = (instruction >> 15) & 0x1F;
+    currentInstruction.rs2 = (instruction >> 20) & 0x1F;
     uint8_t funct7 = (instruction >> 25) & 0x7F;
+    currentInstruction.immediate = 0;
 
-    // R type instructions(FMT=R)
-    if (opcode == 0b0110011) {
-
-        di.rd = rd;
-        di.rs1 = rs1;
-        di.rs2 = rs2;
-
+    switch (opcode) {
+    // R-type (opcode = 0b0110011)
+    case 0b0110011:
         switch (funct3) {
-        case 0x0: {
+        case 0x0:
             if (funct7 == 0x00)
-                di.opcode = inst::add;
+                currentInstruction.opcode = inst::add;
             else if (funct7 == 0x20)
-                di.opcode = inst::sub;
+                currentInstruction.opcode = inst::sub;
             else if (funct7 == 0x01)
-                di.opcode = inst::mul;
-
+                currentInstruction.opcode = inst::mul;
             break;
-        }
-        case 0x1: {
+        case 0x1:
             if (funct7 == 0x00)
-                di.opcode = inst::sll;
+                currentInstruction.opcode = inst::sll;
             else if (funct7 == 0x01)
-                di.opcode = inst::mulh;
+                currentInstruction.opcode = inst::mulh;
             break;
-        }
-        case 0x2: {
+        case 0x2:
             if (funct7 == 0x00)
-                di.opcode = inst::slt;
+                currentInstruction.opcode = inst::slt;
             else if (funct7 == 0x01)
-                di.opcode = inst::mulhsu;
+                currentInstruction.opcode = inst::mulhsu;
             break;
-        }
-        case 0x3: {
+        case 0x3:
             if (funct7 == 0x00)
-                di.opcode = inst::sltu;
+                currentInstruction.opcode = inst::sltu;
             else if (funct7 == 0x01)
-                di.opcode = inst::mulhu;
+                currentInstruction.opcode = inst::mulhu;
             break;
-        }
-        case 0x4: {
+        case 0x4:
             if (funct7 == 0x00)
-                di.opcode = inst::_xor;
+                currentInstruction.opcode = inst::_xor;
             else if (funct7 == 0x01)
-                di.opcode = inst::div;
+                currentInstruction.opcode = inst::_div;
             break;
-        }
-        case 0x5: {
+        case 0x5:
             if (funct7 == 0x00)
-                di.opcode = inst::srl;
+                currentInstruction.opcode = inst::srl;
             else if (funct7 == 0x20)
-                di.opcode = inst::sra;
+                currentInstruction.opcode = inst::sra;
             else if (funct7 == 0x01)
-                di.opcode = inst::divu;
+                currentInstruction.opcode = inst::divu;
             break;
-        }
-        case 0x6: {
+        case 0x6:
             if (funct7 == 0x00)
-                di.opcode = inst::_or;
+                currentInstruction.opcode = inst::_or;
             else if (funct7 == 0x01)
-                di.opcode = inst::rem;
+                currentInstruction.opcode = inst::rem;
             break;
-        }
-        case 0x7: {
+        case 0x7:
             if (funct7 == 0x00)
-                di.opcode = inst::_and;
+                currentInstruction.opcode = inst::_and;
             else if (funct7 == 0x01)
-                di.opcode = inst::remu;
+                currentInstruction.opcode = inst::remu;
             break;
         }
-        default:
-            break;
-        }
-    }
-    // I type instructions(FMT=I)
-    else if (opcode == 0b0010011) {
-        di.rd = rd;
-        di.rs1 = rs1;
-        di.immediate = static_cast<int32_t>(instruction) >> 20;
+        break;
+
+        // I-type ALU immediate (opcode = 0b0010011)
+    case 0b0010011: {
+        int32_t imm = static_cast<int32_t>(instruction) >> 20;  // sign-extended immediate
+        uint8_t shamt = (instruction >> 20) & 0x1F;             // shift amount for shifts
         switch (funct3) {
-        case 0x0: {
-            di.opcode = inst::addi;
+        case 0x0:
+            currentInstruction.opcode = inst::addi;
+            currentInstruction.immediate = imm;
+            break;
+        case 0x1:
+            if (funct7 == 0x00) {
+                currentInstruction.opcode = inst::slli;
+                currentInstruction.immediate = shamt;
+            }
+            break;
+        case 0x5:
+            if (funct7 == 0x00) {
+                currentInstruction.opcode = inst::srli;
+                currentInstruction.immediate = shamt;
+            }
+            break;
+        case 0x6:
+            currentInstruction.opcode = inst::ori;
+            currentInstruction.immediate = imm;
+            break;
+        case 0x7:
+            currentInstruction.opcode = inst::andi;
+            currentInstruction.immediate = imm;
             break;
         }
-        case 0x1: {
-            di.opcode = inst::slli;
-            break;
-        }
-        case 0x6: {
-            di.opcode = inst::srli;
-            break;
-        }
-        case 0x7: {
-            di.opcode = inst::andi;
-            break;
-        }
-
-        default:
-            break;
-        }
+        break;
     }
-    // I type instructions(FMT=I)
-    else if (opcode == 0b0000011) {
-        di.rd = rd;
-        di.rs1 = rs1;
-        di.immediate = static_cast<int32_t>(instruction) >> 20;
+
+        // I-type Load instructions (opcode = 0b0000011)
+    case 0b0000011: {
+        int32_t imm = static_cast<int32_t>(instruction) >> 20;  // sign-extended immediate
+        currentInstruction.immediate = imm;
         switch (funct3) {
-        case 0x00: {
-            di.opcode = inst::lb;
-            break;
+        case 0x0: currentInstruction.opcode = inst::lb; break;
+        case 0x1: currentInstruction.opcode = inst::lh; break;
+        case 0x2: currentInstruction.opcode = inst::lw; break;
+        case 0x4: currentInstruction.opcode = inst::lbu; break;
+        case 0x5: currentInstruction.opcode = inst::lhu; break;
+        default: currentInstruction.opcode = inst::invalid; break;
         }
-        case 0x01: {
-            di.opcode = inst::lh;
-            break;
-        }
-        case 0x02: {
-            di.opcode = inst::lw;
-            break;
-        }
-        case 0x04: {
-            di.opcode = inst::lbu;
-            break;
-        }
-        case 0x05: {
-            di.opcode = inst::lhu;
-            break;
-        }
-        default:
-            break;
-        }
+        break;
     }
 
-    // I type instructions(FMT=I)
-    else if (opcode == 0b1100111) {
-        di.rd = rd;
-        di.rs1 = rs1;
-        di.immediate = static_cast<int32_t>(instruction) >> 20;
-        if (funct3 == 0x00)
-            di.opcode = inst::jalr;
+        // I-type jalr (opcode = 0b1100111)
+    case 0b1100111: {
+        int32_t imm = static_cast<int32_t>(instruction) >> 20;  // sign-extended immediate
+        if (funct3 == 0x0)
+            currentInstruction.opcode = inst::jalr;
+        currentInstruction.immediate = imm;
+        break;
     }
 
-    // B type instructions(FMT=B)
-    else if (opcode == 0b1100011) {
+        // B-type Branch instructions (opcode = 0b1100011)
+    case 0b1100011: {
         int32_t imm = 0;
         imm |= ((instruction >> 31) & 0x1) << 12;
         imm |= ((instruction >> 7) & 0x1) << 11;
         imm |= ((instruction >> 25) & 0x3F) << 5;
         imm |= ((instruction >> 8) & 0xF) << 1;
+        // sign extend bit 12
         if (imm & (1 << 12))
-            imm |= 0xFFFFE000; // sign-extend
-        di.immediate = imm;
+            imm |= 0xFFFFE000;
+        currentInstruction.immediate = imm;
 
-        di.opcode = (funct3 == 0b000)   ? inst::beq
-                    : (funct3 == 0b001) ? inst::bne
-                    : (funct3 == 0b100) ? inst::blt
-                    : (funct3 == 0b101) ? inst::bge
-                                        : inst::invalid;
+        switch (funct3) {
+        case 0b000: currentInstruction.opcode = inst::beq; break;
+        case 0b001: currentInstruction.opcode = inst::bne; break;
+        case 0b100: currentInstruction.opcode = inst::blt; break;
+        case 0b101: currentInstruction.opcode = inst::bge; break;
+        case 0b110: currentInstruction.opcode = inst::bltu; break;
+        case 0b111: currentInstruction.opcode = inst::bgeu; break;
+        default: currentInstruction.opcode = inst::invalid; break;
+        }
+        break;
     }
 
-    // S type instructions(FMT=S)
-    else if (opcode == 0b0100011) {
-        int32_t imm = ((instruction >> 25) << 5) | ((instruction >> 7) & 0x1F);
-        if (imm & (1 << 11)) // sign-extend
+        // S-type Store instructions (opcode = 0b0100011)
+    case 0b0100011: {
+        int32_t imm = 0;
+        imm |= ((instruction >> 25) & 0x7F) << 5;
+        imm |= ((instruction >> 7) & 0x1F);
+        // sign extend bit 11
+        if (imm & (1 << 11))
             imm |= 0xFFFFF000;
-        di.immediate = imm;
+        currentInstruction.immediate = imm;
 
-        di.opcode = (funct3 == 0b000)   ? inst::sb
-                    : (funct3 == 0b001) ? inst::sh
-                    : (funct3 == 0b010) ? inst::sw
-                                        : inst::invalid;
-
+        switch (funct3) {
+        case 0b000: currentInstruction.opcode = inst::sb; break;
+        case 0b001: currentInstruction.opcode = inst::sh; break;
+        case 0b010: currentInstruction.opcode = inst::sw; break;
+        default: currentInstruction.opcode = inst::invalid; break;
+        }
+        break;
     }
 
-    // U type instructions(FMT=U)
-    else if (opcode == 0b0110111) {
-        di.immediate = instruction & 0xFFFFF000;
-        di.opcode = inst::lui;
-    }
+        // U-type LUI (opcode = 0b0110111)
+    case 0b0110111:
+        currentInstruction.immediate = instruction & 0xFFFFF000;
+        currentInstruction.opcode = inst::lui;
+        break;
 
-    // U type instructions(FMT=U)
-    else if (opcode == 0b0010111) {
-        di.immediate = instruction & 0xFFFFF000;
-        di.opcode = inst::auipc;
-    }
+        // U-type AUIPC (opcode = 0b0010111)
+    case 0b0010111:
+        currentInstruction.immediate = instruction & 0xFFFFF000;
+        currentInstruction.opcode = inst::auipc;
+        break;
 
-    // J type instructions(FMT=J)
-    else if (opcode == 0b1101111) {
+        // J-type JAL (opcode = 0b1101111)
+    case 0b1101111: {
         int32_t imm = 0;
         imm |= ((instruction >> 31) & 0x1) << 20;
         imm |= ((instruction >> 12) & 0xFF) << 12;
         imm |= ((instruction >> 20) & 0x1) << 11;
         imm |= ((instruction >> 21) & 0x3FF) << 1;
+        // sign extend bit 20
         if (imm & (1 << 20))
-            imm |= 0xFFF00000; // sign-extend
-        di.immediate = imm;
-        di.opcode = inst::jal;
+            imm |= 0xFFF00000;
+        currentInstruction.immediate = imm;
+        currentInstruction.opcode = inst::jal;
+        break;
     }
 
-    return di;
+    default:
+        currentInstruction.opcode = inst::invalid;
+        break;
+    }
+}
+
+
+
+void CPU::clockTick() {
+    switch(stage) {
+    case CPUStage::Fetch1:
+        AR = PC;
+        stage = CPUStage::Fetch2;
+        break;
+
+    case CPUStage::Fetch2:
+        IR = memory->read32(AR);
+        PC += 4;
+        stage = CPUStage::Decode;
+        break;
+
+    case CPUStage::Decode:
+        decode(IR);
+        cycleStep = 3;
+        stage = CPUStage::Exec;
+        break;
+
+    case CPUStage::Exec:
+        executeMicroStep();
+        break;
+
+    case CPUStage::Mem:
+        //memoryAccess();
+        break;
+
+    case CPUStage::WriteBack:
+        //writeBack();
+        break;
+
+    case CPUStage::HALT:
+        std::cout << "HALT encountered. CPU stopped." << std::endl;
+        break;
+
+    default:
+        break;
+    }
+}
+
+void CPU::executeMicroStep() {
+    switch(currentInstruction.opcode) {
+    // ---------------------- ADD ----------------------
+    case inst::add:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            DR = A + B;
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- SUB ----------------------
+    case inst::sub:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- XOR ----------------------
+    case inst::_xor:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A ^ B;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- OR ----------------------
+    case inst::_or:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A | B;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- AND ----------------------
+    case inst::_and:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A & B;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- SLL ----------------------
+    case inst::sll:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A << (B & 0x1F);
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- SRL ----------------------
+    case inst::srl:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A >> (B & 0x1F);
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- SRA ----------------------
+    case inst::sra:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = Alu.sra(A, B & 0x1F); // تابع sra باید توی ALU تعریف شده باشه
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- SLT ----------------------
+    case inst::slt:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            DR = (static_cast<int32_t>(DR) < 0) ? 1 : 0;
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- SLTU ----------------------
+    case inst::sltu:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            DR = (A < B) ? 1 : 0;
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- ADDI ----------------------
+    case inst::addi:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- LH ----------------------
+    case inst::lh:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            AR = DR;
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            DR = memory->read16(AR);  // M[AR]
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            int16_t val = static_cast<int16_t>(DR & 0xFFFF); // sign-extend
+            DR = static_cast<int32_t>(val);
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- LW ----------------------
+    case inst::lw:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            AR = DR;
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            DR = memory->read32(AR);
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- SH ----------------------
+    case inst::sh:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            AR = DR;
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            DR = B & 0xFFFF;  // فقط 16 بیت پایین
+            cycleStep++;
+        } else if (cycleStep == 9) {
+            memory->write16(AR, static_cast<uint16_t>(DR));
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- SW ----------------------
+    case inst::sw:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            AR = DR;
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            DR = B;
+            cycleStep++;
+        } else if (cycleStep == 9) {
+            memory->write32(AR, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- BEQ ----------------------
+    case inst::beq:
+        if (cycleStep == 3) { // T3
+            A = regFile->read(currentInstruction.rs1);
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 4) { // T4
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 5) { // T5
+            cycleStep++;
+        } else if (cycleStep == 6) { // T6
+            A = PC;
+            cycleStep++;
+        } else if (cycleStep == 7) { // T7
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 8) { // T8
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 9) { // T9
+            if (A == B)
+                PC = DR;
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- BNE ----------------------
+    case inst::bne:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            A = PC;
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 9) {
+            if (A != B)
+                PC = DR;
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- BLT ----------------------
+    case inst::blt:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            A = PC;
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 9) {
+            if (static_cast<int32_t>(A) < static_cast<int32_t>(B))
+                PC = DR;
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- BGE ----------------------
+    case inst::bge:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            A = PC;
+            cycleStep++;
+        } else if (cycleStep == 7) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 8) {
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 9) {
+            if (static_cast<int32_t>(A) >= static_cast<int32_t>(B))
+                PC = DR;
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- BLTU ----------------------
+    case inst::bltu:
+        if (cycleStep == 3) { // T3
+            A = regFile->read(currentInstruction.rs1);
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 4) { // T4
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 5) { // T5
+            cycleStep++;
+        } else if (cycleStep == 6) { // T6
+            A = PC;
+            cycleStep++;
+        } else if (cycleStep == 7) { // T7
+            Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
+            cycleStep++;
+        } else if (cycleStep == 8) { // T8
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 9) { // T9
+            if (A < B)  // چون BLTU هست → مقایسه بدون علامت
+                PC = DR;
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+        // ---------------------- BGEU ----------------------
+    case inst::bgeu:
+        if (cycleStep == 3) { // T3
+            A = regFile->read(currentInstruction.rs1);
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 4) { // T4
+            DR = A - B;
+            cycleStep++;
+        } else if (cycleStep == 5) { // T5
+            cycleStep++;
+        } else if (cycleStep == 6) { // T6
+            A = PC;
+            cycleStep++;
+        } else if (cycleStep == 7) { // T7
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 8) { // T8
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 9) { // T9
+            if (A >= B)  // چون BGEU هست → مقایسه unsigned
+                PC = DR;
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- LUI ----------------------
+    case inst::lui:
+        if (cycleStep == 3) { // UT3
+            Imm = currentInstruction.immediate;
+            DR = Imm << 12;
+            cycleStep++;
+        } else if (cycleStep == 4) { // UT4
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- AUIPC ----------------------
+    case inst::auipc:
+        if (cycleStep == 3) { // UT3
+            A = PC;
+            cycleStep++;
+        } else if (cycleStep == 4) { // UT4
+            Imm = currentInstruction.immediate;
+            DR = Imm << 12;
+            cycleStep++;
+        } else if (cycleStep == 5) { // UT5
+            B = DR;
+            cycleStep++;
+        } else if (cycleStep == 6) { // UT6
+            DR = A + B;
+            cycleStep++;
+        } else if (cycleStep == 7) { // UT7
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+
+        // ---------------------- JAL ----------------------
+    case inst::jal:
+        if (cycleStep == 3) {
+            A = PC;
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            regFile->write(currentInstruction.rd, PC + 4);  // return address
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            PC = A + Imm;
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+        // ---------------------- JALR ----------------------
+    case inst::jalr:
+        if (cycleStep == 3) { // T3
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) { // T4
+            Imm = currentInstruction.immediate;
+            cycleStep++;
+        } else if (cycleStep == 5) { // T5
+            DR = A + Imm;
+            cycleStep++;
+        } else if (cycleStep == 6) { // T6
+            regFile->write(currentInstruction.rd, PC);
+            cycleStep++;
+        } else if (cycleStep == 7) { // T7
+            A = DR;
+            cycleStep++;
+        } else if (cycleStep == 8) { // T8
+            DR = A & 0xFFFFFFFE;  // همون A & ~1
+            cycleStep++;
+        } else if (cycleStep == 9) { // T9
+            PC = DR;
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+        // ---------------------- MUL ----------------------
+    case inst::mul:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            DR = A * B;
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+        // ---------------------- MULH ----------------------
+    case inst::mulh:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            int64_t tmp = static_cast<int64_t>(static_cast<int32_t>(A)) *
+                          static_cast<int64_t>(static_cast<int32_t>(B));
+            DR = static_cast<uint32_t>(tmp >> 32);  // ۳۲ بیت بالا
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+        // ---------------------- DIV ----------------------
+    case inst::_div:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            if (B == 0)
+                DR = static_cast<uint32_t>(-1);  // RISC-V: نتیجه division by zero
+            else
+                DR = static_cast<uint32_t>(static_cast<int32_t>(A) / static_cast<int32_t>(B));
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+        // ---------------------- REM ----------------------
+    case inst::rem:
+        if (cycleStep == 3) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 4) {
+            B = regFile->read(currentInstruction.rs2);
+            cycleStep++;
+        } else if (cycleStep == 5) {
+            if (B == 0)
+                DR = A;  // RISC-V: باقی‌مانده division by zero همان مقسوم
+            else
+                DR = static_cast<uint32_t>(static_cast<int32_t>(A) % static_cast<int32_t>(B));
+            cycleStep++;
+        } else if (cycleStep == 6) {
+            regFile->write(currentInstruction.rd, DR);
+            stage = CPUStage::Fetch1;
+        }
+        break;
+
+    default:
+        stage = CPUStage::Fetch1;
+        break;
+    }
 }

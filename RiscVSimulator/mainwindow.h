@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "cpu.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -17,7 +18,13 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+private slots:
+    void on_pushButton_clicked();
+
 private:
     Ui::MainWindow *ui;
+    CPU* cpu;
+    Memory* memory;
+    RegisterFile* regFile;
 };
 #endif // MAINWINDOW_H
