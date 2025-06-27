@@ -1,0 +1,238 @@
+funct 7:
+	B0 = 0x00
+	B1 = 0x01
+	B2 = 0x20
+funct 3:
+	C0 = 0x0
+	C1 = 0x1
+	C2 = 0x2
+	C3 = 0x3
+	C4 = 0x4
+	C5 = 0x5
+	C6 = 0x6
+	C7 = 0x7
+Opcode:
+	B = D2'D6
+	S = D2'D6'D5D4
+	R = D2'D6'D5D4'
+	I = D2'D6'D5'
+	U = D2D4
+	J = D2D4'D3
+	
+
+
+FETCH :
+	T1:  AR ← PC                 
+	T2:  IR ← M[AR], PC ← PC + 4              
+
+ADD :
+	RB0C0T3:  A ← R[IR[19:15]], B ← R[IR[24:20]]        
+	RB0C0T4:  DR ← A + B           
+	RB0C0T5:  R[IR[11:7]] ← DR 
+
+SUB :
+	RB2C0T3:  A ← R[IR[19:15]]         
+	RB2C0T4:  B ← R[IR[24:20]]         
+	RB2C0T5:  DR ← A - B
+	RB2C0T6:  R[IR[11:7]] ← DR    
+	
+XOR :
+	RB0C4T3:  A ← R[IR[19:15]]
+	RB0C4T4:  B ← R[IR[24:20]]          
+	RB0C4T5:  DR ← A ⊕ B            
+	RB0C4T6:  R[IR[11:7]] ← DR      
+	
+OR :
+	RB0C6T3:  A ← R[IR[19:15]]
+	RB0C6T4:  B ← R[IR[24:20]]         
+	RB0C6T5:  DR ← A | B            
+	RB0C6T6:  R[IR[11:7]] ← DR     
+
+AND:
+	RB0C7T3:  A ← R[IR[19:15]]
+	RB0C7T4:  B ← R[IR[24:20]]          
+	RB0C7T5:  DR ← A & B           
+	RB0C7T6:  R[IR[11:7]] ← DR     
+
+SLL:
+	RB0C1T3:  A ← R[IR[19:15]]
+	RB0C1T4:  B ← R[IR[24:20]]         
+	RB0C1T5:  DR ← A << (B & 0x1F)
+	RB0C1T6:  R[IR[11:7]] ← DR     
+
+SRL:
+	RB0C5T3:  A ← R[IR[19:15]]
+	RB0C5T4:  B ← R[IR[24:20]]         
+	RB0C5T5:  DR ← A >> (B & 0x1F) 
+	RB0C5T6:  R[IR[11:7]] ← DR    
+
+SRA:
+	RB2C5T3:  A ← R[IR[19:15]]
+	RB2C5T4:  B ← R[IR[24:20]]         
+	RB2C5T5:  DR ← A >>> (B & 0x1F) 
+	RB2C5T6:  R[IR[11:7]] ← DR     
+
+SLT:
+	RB0C2T3:  A ← R[IR[19:15]]         
+	RB0C2T4:  B ← R[IR[24:20]]         
+	RB0C2T5:  DR ← A - B               
+	RB0C2T6:  r ← DR[31]               
+	RB0C2rT7: DR ← 1
+	RB0C2r'T7: DR ← 0
+	RB0C2T8: R[IR[11:7]] ← DR
+	
+SLTU:
+	RB0C3T3:  A ← R[IR[19:15]]                 
+	RB0C3T4:  B ← R[IR[24:20]]              	
+	RB0C3T5:  DR ← A - B               
+	RB0C3T6:  r ← E                      
+	RB0C3rT7: DR ← 1                       
+	RB0C3r'T7: DR ← 0
+	RB0C3T8: R[IR[11:7]] ← DR
+
+ADDI :
+	IC0T3:  A ← R[IR[19:15]]
+	IC0T4:  Imm ← SignExtend(IR[31:20])               
+	IC0T5:  DR ← A + Imm 
+	IC0T5:  R[IR[11:7]] ← DR
+	
+Lh :
+	IC1T3:   A ← R[IR[19:15]]                          
+	IC1T4:   Imm ← SignExtend(IR[31:20])                
+	IC1T5:   DR ← A + Imm                               
+	IC1T6:   AR ← DR                                   
+	IC1T7:   DR ← M[AR[15:0]]                        
+	IC1T8:  R[IR[11:7]] ← SignExtend(DR[15:0])        
+	
+	// بپرسیم DR خالی اوکیه یا نه ???????
+
+LW :
+	IC2T3: A ← R[IR[19:15]]             
+	IC2T4: Imm ← IR[31:20]
+	IC2T5: DR ← A + Imm
+	IC2T6: AR ← DR                 
+	IC2T7: DR ← M[AR]                 
+	IC2T8: R[IR[11:7]] ← DR           
+
+SH :
+	SC1T3: A ← R[IR[19:15]]            
+	SC1T4: B ← R[IR[24:20]]             
+	SC1T5: Imm ← SignExtend({IR[31:25], IR[11:7]})
+	SC1T6: DR ← A + Imm
+	SC1T7: AR ← DR
+	SC1T8: DR ← B[0:15]               
+	SC1T9: M[AR] ← DR                 
+	
+SW :
+	SC2T3: A ← R[IR[19:15]]             
+	SC2T4: B ← R[IR[24:20]]             
+	SC2T5: Imm ← SignExtend({IR[31:25], IR[11:7]})
+	SC2T6: DR ← A + Imm
+	SC2T7: AR ← DR
+	SC2T8: DR ← B
+	SC2T9: M[AR] ← DR             	
+	
+BEQ :
+	BC0T3:  A ← R[IR[19:15]]                  
+	BC0T4:  B ← R[IR[24:20]]                  
+	BC0T5:  DR ← A - B, r ← DR      
+	BC0T6:  A ← PC                            
+	BC0T7:  Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
+	BC0T8:  DR ← A + Imm                      
+	BC0rT9: PC ← DR                          
+
+BNE :
+	BC1T3: A ← R[IR[19:15]]                  
+	BC1T4: B ← R[IR[24:20]]                  
+	BC1T5: DR ← A - B, r ← DR     
+	BC1T6: A ← PC                            
+	BC1T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
+	BC1T8: DR ← A + Imm
+	BC1r'T9: PC ← DR                          
+
+BLt :
+	BC4T3: A ← R[IR[19:15]]                  
+	BC4T4: B ← R[IR[24:20]]                 
+	BC4T5: DR ← A - B      				                           
+	BC4T6: A ← PC, r ← DR[31]                
+	BC4T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
+	BC4T8: DR ← A + Imm                     
+	BC4rT9: PC ← DR                          
+
+BGE :
+	BC5T3: A ← R[IR[19:15]]                 
+	BC5T4: B ← R[IR[24:20]]                  
+	BC5T5: DR ← A - B      				                           
+	BC5T6: A ← PC, r ← DR[31]               
+	BC5T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
+	BC5T8: DR ← A + Imm                      
+	BC5r'T9: PC ← DR                          
+
+BLTU :
+	BC6T3: A ← R[IR[19:15]]
+	BC6T4: B ← R[IR[24:20]]
+	BC6T5: DR ← A - B               
+	BC6T6: A ← PC, r ← E 
+	BC6T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
+	BC6T8: DR ← A + Imm                      
+	BC6rT9: PC ← DR
+
+BGEU :
+	BC7T3: A ← R[IR[19:15]]
+	BC7T4: B ← R[IR[24:20]]
+	BC7T5:  DR ← A - B               
+	BC7T6:  A ← PC, r ← E 
+	BC7T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
+	BC7T8: DR ← A + Imm                      
+	BC7r'T9: PC ← DR
+
+JAL :
+	JT3: Imm ← SignExtend({IR[31], IR[19:12], IR[20], IR[30:21], 1'b0})
+	JT4: R[IR[11:7]] ← PC
+	JT5: PC ← PC + Imm
+
+JALR :
+	1100111C0T3: A ← R[IR[19:15]]
+	1100111C0T4: Imm ← SignExtend(IR[31:20])
+	1100111C0T5: DR ← A + Imm
+	1100111C0T6: R[IR[11:7]] ← PC
+	1100111C0T7: A ← DR
+	1100111C0T8: DR ← A & 0xFFFFFFFE
+	1100111C0T9: PC ← DR
+
+LUI :
+	UT3: DR ← Imm << 12
+	UT4: R[IR[11:7]] ← DR
+
+AUIPC :
+	UT3: A ← PC
+	UT4: DR ← Imm << 12
+	UT5: B ← DR
+	UT6: DR ← A + B
+	UT7: R[IR[11:7]] ← DR
+
+MUL :
+	RB1C0T3: A ← R[IR[19:15]]
+	RB1C0T4: B ← R[IR[24:20]]
+	RB1C0T5: DR ← A * B
+	B1C0T6: R[IR[11:7]] ← DR
+
+MULH:
+	RB1C1T3:  A ← R[IR[19:15]]            
+	RB1C1T4:  B ← R[IR[24:20]]           
+	RB1C1T5:  TMP ← A × B                 
+	RB1C1T6:  DR ← TMP[63:32]             
+	RB1C1T7:  R[IR[11:7]] ← DR            
+
+DIV:
+	RB1C4T3:  A ← R[IR[19:15]]      
+	RB1C4T4:  B ← R[IR[24:20]]           
+	RB1C4T5:  DR ← A / B                
+	RB1C4T6:  R[IR[11:7]] ← DR      
+
+
+REM:
+	RB1C6T3:  A ← R[IR[19:15]]        
+	RB1C6T4:  B ← R[IR[24:20]]          
+	RB1C6T5:  DR ← A % B              
+	RB1C6T6:  R[IR[11:7]] ← DR     
