@@ -94,7 +94,7 @@ ADDI :
 	IC0T3:  A ← R[IR[19:15]]
 	IC0T4:  Imm ← SignExtend(IR[31:20])               
 	IC0T5:  DR ← A + Imm 
-	IC0T5:  R[IR[11:7]] ← DR
+	IC0T6:  R[IR[11:7]] ← DR
 	
 Lh :
 	IC1T3:   A ← R[IR[19:15]]                          

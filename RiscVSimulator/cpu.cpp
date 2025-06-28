@@ -250,14 +250,14 @@ void CPU::clockTick() {
 
 void CPU::executeMicroStep() {
     switch(currentInstruction.opcode) {
-    // ---------------------- ADD ----------------------
+        // ---------------------- ADD ----------------------
     case inst::add:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 4) {
-            DR = A + B;
+            DR = Alu.add(A, B);
             cycleStep++;
         } else if (cycleStep == 5) {
             regFile->write(currentInstruction.rd, DR);
@@ -275,7 +275,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A - B;
+            DR = Alu.sub(A, B);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -293,7 +293,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A ^ B;
+            DR = Alu.xor_op(A, B);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -311,7 +311,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A | B;
+            DR = Alu.or_op(A, B);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -329,7 +329,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A & B;
+            DR = Alu.and_op(A, B);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -347,7 +347,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A << (B & 0x1F);
+            DR = Alu.sll(A, B & 0x1F);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -365,7 +365,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A >> (B & 0x1F);
+            DR = Alu.srl(A, B & 0x1F);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -401,7 +401,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A - B;
+            DR = Alu.sub(A, B);
             cycleStep++;
         } else if (cycleStep == 6) {
             cycleStep++;
@@ -423,15 +423,15 @@ void CPU::executeMicroStep() {
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
-        } else if (cycleStep == 5) {
-            DR = A - B;
+            /*} else if (cycleStep == 5) {
+            DR = Alu.sub(A, B);
             cycleStep++;
         } else if (cycleStep == 6) {
-            cycleStep++;
-        } else if (cycleStep == 7) {
+            cycleStep++;*/
+        } else if (cycleStep == 5) {
             DR = (A < B) ? 1 : 0;
             cycleStep++;
-        } else if (cycleStep == 8) {
+        } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
             stage = CPUStage::Fetch1;
         }
