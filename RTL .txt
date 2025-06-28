@@ -26,9 +26,10 @@ FETCH :
 	T2:  IR ← M[AR], PC ← PC + 4              
 
 ADD :
-	RB0C0T3:  A ← R[IR[19:15]], B ← R[IR[24:20]]        
-	RB0C0T4:  DR ← A + B           
-	RB0C0T5:  R[IR[11:7]] ← DR 
+	RB0C0T3:  A ← R[IR[19:15]]
+	RB0C0T4:  B ← R[IR[24:20]]        
+	RB0C0T5:  DR ← A + B           
+	RB0C0T6:  R[IR[11:7]] ← DR 
 
 SUB :
 	RB2C0T3:  A ← R[IR[19:15]]         
@@ -166,7 +167,7 @@ BGE :
 	BC5T6: A ← PC, r ← DR[31]               
 	BC5T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC5T8: DR ← A + Imm                      
-	BC5r'T9: PC ← DR                          
+	BC5rT9: PC ← DR                          
 
 BLTU :
 	BC6T3: A ← R[IR[19:15]]
@@ -175,7 +176,7 @@ BLTU :
 	BC6T6: A ← PC, r ← E 
 	BC6T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC6T8: DR ← A + Imm                      
-	BC6rT9: PC ← DR
+	BC6r'T9: PC ← DR
 
 BGEU :
 	BC7T3: A ← R[IR[19:15]]
@@ -184,12 +185,16 @@ BGEU :
 	BC7T6:  A ← PC, r ← E 
 	BC7T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC7T8: DR ← A + Imm                      
-	BC7r'T9: PC ← DR
+	BC7rT9: PC ← DR
 
 JAL :
-	JT3: Imm ← SignExtend({IR[31], IR[19:12], IR[20], IR[30:21], 1'b0})
-	JT4: R[IR[11:7]] ← PC
-	JT5: PC ← PC + Imm
+	
+	JT3: A ← PC                 
+	JT4: R[IR[11:7]] ← A        
+	JT5: DR ← A - 4                   
+	JT6: A ← DR, Imm ← SignExtend({IR[31], IR[19:12], IR[20], IR[30:21], 0})
+	JT7: DR ← A + Imm           
+	JT8: PC ← DR
 
 JALR :
 	1100111C0T3: A ← R[IR[19:15]]
@@ -206,10 +211,11 @@ LUI :
 
 AUIPC :
 	UT3: A ← PC
-	UT4: DR ← Imm << 12
-	UT5: B ← DR
-	UT6: DR ← A + B
-	UT7: R[IR[11:7]] ← DR
+	UT4: DR ← A - 4 
+	UT5: A  ←  DR               
+	UT6: B ← Imm << 12
+	UT7: DR ← A + B                   
+	UT8: R[IR[11:7]] ← DR
 
 MUL :
 	RB1C0T3: A ← R[IR[19:15]]
