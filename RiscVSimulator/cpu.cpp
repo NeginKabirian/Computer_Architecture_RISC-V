@@ -254,12 +254,14 @@ void CPU::executeMicroStep() {
     case inst::add:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
-            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 4) {
-            DR = Alu.add(A, B);
+            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
+            DR = Alu.add(A, B);
+            cycleStep++;
+        } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
             stage = CPUStage::Fetch1;
         }
@@ -423,11 +425,6 @@ void CPU::executeMicroStep() {
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
-            /*} else if (cycleStep == 5) {
-            DR = Alu.sub(A, B);
-            cycleStep++;
-        } else if (cycleStep == 6) {
-            cycleStep++;*/
         } else if (cycleStep == 5) {
             DR = (A < B) ? 1 : 0;
             cycleStep++;
@@ -471,7 +468,8 @@ void CPU::executeMicroStep() {
             AR = DR;
             cycleStep++;
         } else if (cycleStep == 7) {
-            DR = memory->read16(AR);  // M[AR]
+            int16_t val = static_cast<int16_t>(memory->read16(AR));
+            DR = Alu.passThrough(static_cast<uint32_t>(val));
             cycleStep++;
         } else if (cycleStep == 8) {
             int16_t val = static_cast<int16_t>(DR & 0xFFFF); // sign-extend
@@ -497,7 +495,8 @@ void CPU::executeMicroStep() {
             AR = DR;
             cycleStep++;
         } else if (cycleStep == 7) {
-            DR = memory->read32(AR);
+            A = memory->read32(AR);
+            DR = Alu.passThrough(A);
             cycleStep++;
         } else if (cycleStep == 8) {
             regFile->write(currentInstruction.rd, DR);
@@ -551,7 +550,7 @@ void CPU::executeMicroStep() {
             AR = DR;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = B;
+            DR = Alu.passThrough(B);
             cycleStep++;
         } else if (cycleStep == 9) {
             memory->write32(AR, DR);
@@ -563,24 +562,22 @@ void CPU::executeMicroStep() {
         // ---------------------- BEQ ----------------------
     case inst::beq:
         if (cycleStep == 3) { // T3
-            A = regFile->read(currentInstruction.rs1);
-            cycleStep++;
-        } else if (cycleStep == 4) { // T4
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
+        } else if (cycleStep == 4) { // T4
+            A = PC - 4;
+            cycleStep++;
         } else if (cycleStep == 5) { // T5
-            DR = Alu.sub(A,B);
-            cycleStep++;
-        } else if (cycleStep == 6) { // T6
-            A = PC;
-            cycleStep++;
-        } else if (cycleStep == 7) { // T7
             Imm = currentInstruction.immediate;
             cycleStep++;
-        } else if (cycleStep == 8) { // T8
-            DR = Alu.add(A,Imm);
+        } else if (cycleStep == 6) { // T6
+            DR = A + Imm;
             cycleStep++;
-        } else if (cycleStep == 9) { // T9
+        } else if (cycleStep == 7) { // T7
+            A = regFile->read(currentInstruction.rs1);
+
+            cycleStep++;
+        } else if (cycleStep == 8) { // T8
             if (A == B)
                 PC = DR;
             stage = CPUStage::Fetch1;
@@ -590,25 +587,23 @@ void CPU::executeMicroStep() {
 
         // ---------------------- BNE ----------------------
     case inst::bne:
-        if (cycleStep == 3) {
-            A = regFile->read(currentInstruction.rs1);
-            cycleStep++;
-        } else if (cycleStep == 4) {
+        if (cycleStep == 3) { // T3
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
-        } else if (cycleStep == 5) {
-            DR = Alu.sub(A,B);
+        } else if (cycleStep == 4) { // T4
+            A = PC - 4;
             cycleStep++;
-        } else if (cycleStep == 6) {
-            A = PC;
-            cycleStep++;
-        } else if (cycleStep == 7) {
+        } else if (cycleStep == 5) { // T5
             Imm = currentInstruction.immediate;
             cycleStep++;
-        } else if (cycleStep == 8) {
-            DR = Alu.add(A,Imm);
+        } else if (cycleStep == 6) { // T6
+            DR = A + Imm;
             cycleStep++;
-        } else if (cycleStep == 9) {
+        } else if (cycleStep == 7) { // T7
+            A = regFile->read(currentInstruction.rs1);
+
+            cycleStep++;
+        } else if (cycleStep == 8) { // T8
             if (A != B)
                 PC = DR;
             stage = CPUStage::Fetch1;
@@ -621,20 +616,21 @@ void CPU::executeMicroStep() {
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
             cycleStep++;
-        } else if (cycleStep == 4) {
+        }else if(cycleStep == 4){
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = Alu.sub(A,B);
+            DR = A - B;
             cycleStep++;
+
         } else if (cycleStep == 6) {
-            A = PC;
+            A = PC - 4;
             cycleStep++;
         } else if (cycleStep == 7) {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = Alu.add(A,Imm);
+            DR = A + Imm;
             cycleStep++;
         } else if (cycleStep == 9) {
             if (static_cast<int32_t>(A) < static_cast<int32_t>(B))
@@ -649,20 +645,20 @@ void CPU::executeMicroStep() {
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
             cycleStep++;
-        } else if (cycleStep == 4) {
+        }else if(cycleStep == 4){
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = Alu.sub(A,B);
+            DR = A - B;
             cycleStep++;
         } else if (cycleStep == 6) {
-            A = PC;
+            A = PC - 4;
             cycleStep++;
         } else if (cycleStep == 7) {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = Alu.add(A,Imm);
+            DR = A + Imm;
             cycleStep++;
         } else if (cycleStep == 9) {
             if (static_cast<int32_t>(A) >= static_cast<int32_t>(B))
@@ -672,27 +668,26 @@ void CPU::executeMicroStep() {
         break;
 
 
+
+
         // ---------------------- BLTU ----------------------
     case inst::bltu:
-        if (cycleStep == 3) { // T3
-            A = regFile->read(currentInstruction.rs1);
-            cycleStep++;
-        } else if (cycleStep == 4) { // T4
+        if(cycleStep == 3){
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
+        } else if (cycleStep == 4) { // T4
+            A = PC - 4;
+            cycleStep++;
         } else if (cycleStep == 5) { // T5
-            DR = Alu.sub(A,B);
+            Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
             cycleStep++;
         } else if (cycleStep == 6) { // T6
-            A = PC;
+            DR = A + Imm;
             cycleStep++;
-        } else if (cycleStep == 7) { // T7
-            Imm = currentInstruction.immediate;
+        } else if (cycleStep == 7) {
+            A = regFile->read(currentInstruction.rs1);
             cycleStep++;
         } else if (cycleStep == 8) { // T8
-            DR = Alu.add(A,Imm);
-            cycleStep++;
-        } else if (cycleStep == 9) { // T9
             if (A < B)
                 PC = DR;
             stage = CPUStage::Fetch1;
@@ -701,26 +696,23 @@ void CPU::executeMicroStep() {
 
         // ---------------------- BGEU ----------------------
     case inst::bgeu:
-        if (cycleStep == 3) { // T3
-            A = regFile->read(currentInstruction.rs1);
+        if(cycleStep == 3){
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 4) { // T4
-            DR = A - B;
+            A = PC - 4;
             cycleStep++;
         } else if (cycleStep == 5) { // T5
+            Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
             cycleStep++;
         } else if (cycleStep == 6) { // T6
-            A = PC;
-            cycleStep++;
-        } else if (cycleStep == 7) { // T7
-            Imm = currentInstruction.immediate;
-            cycleStep++;
-        } else if (cycleStep == 8) { // T8
             DR = A + Imm;
             cycleStep++;
-        } else if (cycleStep == 9) { // T9
-            if (A >= B)  // چون BGEU هست → مقایسه unsigned
+        } else if (cycleStep == 7) {
+            A = regFile->read(currentInstruction.rs1);
+            cycleStep++;
+        } else if (cycleStep == 8) { // T8
+            if (A >= B)
                 PC = DR;
             stage = CPUStage::Fetch1;
         }

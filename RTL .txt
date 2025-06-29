@@ -210,9 +210,7 @@ LUI :
 	UT4: R[IR[11:7]] ← DR
 
 AUIPC :
-	UT3: A ← PC
-	UT4: DR ← A - 4 
-	UT5: A  ←  DR               
+	UT3: A ← PC - 4               
 	UT6: B ← Imm << 12
 	UT7: DR ← A + B                   
 	UT8: R[IR[11:7]] ← DR
