@@ -9,6 +9,13 @@ MainWindow::MainWindow(QWidget *parent)
     memory = new Memory();
     regFile = new RegisterFile();
     cpu = new CPU(memory, regFile);
+    const std::string binaryPath = "assembletest.bin";
+    if (!memory->loadFromFile(binaryPath, 0x0)) {
+        std::cerr << "Halting simulation due to file loading error." << std::endl;
+    }
+    memory->dump(0, 32);
+
+
 }
 
 MainWindow::~MainWindow()
@@ -19,8 +26,15 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+// In MainWindow.cpp
+
 void MainWindow::on_pushButton_clicked()
 {
-    cpu->clockTick();
-}
 
+
+        cpu->printState();
+        cpu->clockTick();
+
+
+    //qDebug() << "Final PC:" << Qt::hex << cpu->getPC();
+}

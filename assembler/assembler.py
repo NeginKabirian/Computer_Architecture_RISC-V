@@ -130,13 +130,20 @@ def encode_b(imm, rs2, rs1, funct3, opcode):
         (opcode & 0x7F)
     )
 
+#def encode_u(imm, rd, opcode):
+    #return (
+      #  (imm & 0xFFFFF000) |
+     #   (rd & 0x1F) << 7 |
+    #    (opcode & 0x7F)
+   # )
 def encode_u(imm, rd, opcode):
+    # The immediate for U-type is the upper 20 bits.
+    # The assembler should place these bits in bits 31-12 of the instruction.
     return (
-        (imm & 0xFFFFF000) |
-        (rd & 0x1F) << 7 |
+        ((imm << 12) & 0xFFFFF000) |
+        ((rd & 0x1F) << 7) |
         (opcode & 0x7F)
     )
-
 def encode_j(imm, rd, opcode):
     imm = imm >> 1  # offset is multiple of 2
     imm20 = (imm >> 19) & 0x1

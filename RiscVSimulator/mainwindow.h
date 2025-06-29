@@ -1,6 +1,5 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
 #include <QMainWindow>
 #include "cpu.h"
 
@@ -28,3 +27,4 @@ private:
     RegisterFile* regFile;
 };
 #endif // MAINWINDOW_H
+
