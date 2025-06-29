@@ -1,6 +1,6 @@
 #include "cpu.h"
 
-CPU::CPU(Memory* mem, RegisterFile* rf) : regFile(rf), memory(mem) {}
+CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) {}
 
 
 void CPU::decode(uint32_t instruction) {
@@ -447,7 +447,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -465,7 +465,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 6) {
             AR = DR;
@@ -491,7 +491,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 6) {
             AR = DR;
@@ -518,13 +518,13 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 6) {
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 7) {
             AR = DR;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = B & 0xFFFF;  // فقط 16 بیت پایین
+            DR = B & 0xFFFF;
             cycleStep++;
         } else if (cycleStep == 9) {
             memory->write16(AR, static_cast<uint16_t>(DR));
@@ -545,7 +545,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 6) {
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 7) {
             AR = DR;
@@ -564,12 +564,12 @@ void CPU::executeMicroStep() {
     case inst::beq:
         if (cycleStep == 3) { // T3
             A = regFile->read(currentInstruction.rs1);
-            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 4) { // T4
-            DR = A - B;
+            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) { // T5
+            DR = Alu.sub(A,B);
             cycleStep++;
         } else if (cycleStep == 6) { // T6
             A = PC;
@@ -578,7 +578,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) { // T8
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 9) { // T9
             if (A == B)
@@ -592,12 +592,12 @@ void CPU::executeMicroStep() {
     case inst::bne:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
-            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 4) {
-            DR = A - B;
+            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
+            DR = Alu.sub(A,B);
             cycleStep++;
         } else if (cycleStep == 6) {
             A = PC;
@@ -606,7 +606,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 9) {
             if (A != B)
@@ -620,12 +620,12 @@ void CPU::executeMicroStep() {
     case inst::blt:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
-            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 4) {
-            DR = A - B;
+            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
+            DR = Alu.sub(A,B);
             cycleStep++;
         } else if (cycleStep == 6) {
             A = PC;
@@ -634,7 +634,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 9) {
             if (static_cast<int32_t>(A) < static_cast<int32_t>(B))
@@ -648,12 +648,12 @@ void CPU::executeMicroStep() {
     case inst::bge:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
-            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 4) {
-            DR = A - B;
+            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
+            DR = Alu.sub(A,B);
             cycleStep++;
         } else if (cycleStep == 6) {
             A = PC;
@@ -662,7 +662,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 9) {
             if (static_cast<int32_t>(A) >= static_cast<int32_t>(B))
@@ -676,24 +676,24 @@ void CPU::executeMicroStep() {
     case inst::bltu:
         if (cycleStep == 3) { // T3
             A = regFile->read(currentInstruction.rs1);
-            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 4) { // T4
-            DR = A - B;
+            B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) { // T5
+            DR = Alu.sub(A,B);
             cycleStep++;
         } else if (cycleStep == 6) { // T6
             A = PC;
             cycleStep++;
         } else if (cycleStep == 7) { // T7
-            Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
+            Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) { // T8
-            DR = A + Imm;
+            DR = Alu.add(A,Imm);
             cycleStep++;
         } else if (cycleStep == 9) { // T9
-            if (A < B)  // چون BLTU هست → مقایسه بدون علامت
+            if (A < B)
                 PC = DR;
             stage = CPUStage::Fetch1;
         }
