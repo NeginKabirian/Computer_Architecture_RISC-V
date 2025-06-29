@@ -136,7 +136,7 @@ SW :
 BEQ :
 	BC0T3:  A ← R[IR[19:15]]                  
 	BC0T4:  B ← R[IR[24:20]]                  
-	BC0T5:  DR ← A - B, r ← DR      
+	BC0T5:  DR ← A - B, r ← DR       ??
 	BC0T6:  A ← PC                            
 	BC0T7:  Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC0T8:  DR ← A + Imm                      

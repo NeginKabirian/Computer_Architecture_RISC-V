@@ -2,7 +2,14 @@
 
 CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) {}
 
+void CPU::reset() {
+    PC = 0;
+    AR = 0;
+    IR = 0;
+    stage = CPUStage::Fetch1;
 
+    qDebug() << "CPU has been reset.";
+}
 void CPU::decode(uint32_t instruction) {
     uint8_t opcode = instruction & 0x7F;
 
@@ -240,7 +247,7 @@ void CPU::clockTick() {
         break;
 
     case CPUStage::HALT:
-        std::cout << "HALT encountered. CPU stopped." << std::endl;
+        qDebug()<<"HALT encountered. CPU stopped.";
         break;
 
     default:
@@ -248,6 +255,18 @@ void CPU::clockTick() {
     }
 }
 
+
+void CPU::printState() const {
+    qDebug().noquote() << QString("Stage: %1 | PC: 0x%2 | AR: 0x%3 | IR: 0x%4")
+                              .arg(static_cast<int>(stage))
+                              .arg(PC, 8, 16, QChar('0'))
+                              .arg(AR, 8, 16, QChar('0'))
+                              .arg(IR, 8, 16, QChar('0'));
+
+    if (stage == CPUStage::Exec) {
+        currentInstruction.print();
+    }
+}
 void CPU::executeMicroStep() {
     switch(currentInstruction.opcode) {
         // ---------------------- ADD ----------------------

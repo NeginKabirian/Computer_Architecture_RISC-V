@@ -3,9 +3,9 @@
 
 #include <cstdint>
 
+#include<iostream>
 
-
-
+#include <QDebug>
 
 typedef enum inst {
     add,
@@ -60,6 +60,14 @@ struct DecodedInstruction {
     uint8_t rs1=0;
     uint8_t rs2=0;
     int32_t immediate=0;
+    void print() const {
+        qDebug().noquote() << QString("   Decoded -> Opcode: %1, rd: %2, rs1: %3, rs2: %4, imm: 0x%5")
+                                  .arg(static_cast<int>(opcode))
+                                  .arg(rd)
+                                  .arg(rs1)
+                                  .arg(rs2)
+                                  .arg(static_cast<uint32_t>(immediate), 8, 16, QChar('0'));
+    }
 };
 
 #endif // DECODEDINSTRUCTION_H
