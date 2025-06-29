@@ -19,6 +19,7 @@ public:
     uint32_t sll(uint32_t a, uint32_t b);
     uint32_t srl(uint32_t a, uint32_t b);
     uint32_t sra(uint32_t a, uint32_t b);
+    uint32_t passThrough(uint32_t val);
     //...
 };
 

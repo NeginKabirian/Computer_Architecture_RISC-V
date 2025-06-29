@@ -20,3 +20,7 @@ uint32_t ALU::sra(uint32_t a, uint32_t b) {
     int32_t signed_val = static_cast<int32_t>(a);
     return static_cast<uint32_t>(signed_val >> b);
 }
+
+uint32_t ALU::passThrough(uint32_t val) {
+    return val;
+}
