@@ -1,4 +1,7 @@
 #include "registerfile.h"
+#include <iostream>
+#include <QDebug>
+
 
 RegisterFile::RegisterFile() {
     regs.fill(0);
@@ -19,4 +22,10 @@ void RegisterFile::reset() {
 
 const std::array<uint32_t, 32> &RegisterFile::getAll() const {
     return regs;
+}
+
+void RegisterFile::printRegisters() {
+    for (size_t i = 0; i < regs.size(); ++i) {
+        qDebug() << "x" << i << "= 0x" << QString::number(regs[i], 16);
+    }
 }

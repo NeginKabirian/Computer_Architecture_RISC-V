@@ -67,13 +67,14 @@ def expand_pseudo(tokens):
         return [['addi', 'x0', 'x0', '0']]
     elif tokens[0] == 'li':
         rd, imm = tokens[1], parse_immediate(tokens[2])
-        if isinstance(imm, list): imm = sum([b << (8*i) for i,b in enumerate(imm)])
+        if isinstance(imm, list): 
+            imm = sum([b << (8*i) for i,b in enumerate(imm)])
         if -2048 <= imm < 2048:
             return [['addi', rd, 'x0', str(imm)]]
         else:
-            upper = imm >> 12
-            lower = imm & 0xFFF
-            return [['lui', rd, str(upper)], ['addi', rd, rd, str(lower)]]
+            upper = (imm + (1 << 11)) >> 12
+            low = imm - (upper << 12)
+            return [['lui', rd, str(upper)], ['addi', rd, rd, str(low)]] 
     elif tokens[0] == 'mv':
         return [['addi', tokens[1], tokens[2], '0']]
     elif tokens[0] == 'not':
