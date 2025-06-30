@@ -31,6 +31,7 @@ private:
     uint16_t AR = 0;
     uint32_t A = 0, B = 0;
     uint32_t Imm = 0;
+    mutable uint32_t lastPrintedIR = 0xFFFFFFFF;
 public:
     void reset() ;
     ALU Alu;

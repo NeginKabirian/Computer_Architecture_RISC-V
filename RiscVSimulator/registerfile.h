@@ -18,6 +18,8 @@ public:
     void reset();
 
     const std::array<uint32_t, 32>& getAll() const;
+
+    void printRegisters();
 };
 
 

@@ -1,6 +1,6 @@
 #include "cpu.h"
 
-CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) {}
+CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) { reset(); }
 
 void CPU::reset() {
     PC = 0;
@@ -218,6 +218,7 @@ void CPU::decode(uint32_t instruction) {
 void CPU::clockTick() {
     switch(stage) {
     case CPUStage::Fetch1:
+        regFile->printRegisters();
         AR = PC;
         stage = CPUStage::Fetch2;
         break;
@@ -264,9 +265,13 @@ void CPU::printState() const {
                               .arg(IR, 8, 16, QChar('0'));
 
     if (stage == CPUStage::Exec) {
-        currentInstruction.print();
+        if (IR != lastPrintedIR) {
+            currentInstruction.print();
+            lastPrintedIR = IR;
+        }
     }
 }
+
 void CPU::executeMicroStep() {
     switch(currentInstruction.opcode) {
         // ---------------------- ADD ----------------------
@@ -893,7 +898,9 @@ void CPU::executeMicroStep() {
         break;
 
     default:
-        stage = CPUStage::Fetch1;
+        stage = CPUStage::HALT;
+        qDebug() << "HALT!";
+        //چجوری متوقف کنم برنامه رو؟
         break;
     }
 }
