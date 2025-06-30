@@ -44,44 +44,50 @@ instruction_set = {
 
 reg_alias = lambda r: int(r.replace('x', '')) if r.startswith('x') and r[1:].isdigit() else None
 
+def to_signed_imm(imm, bits):
+    if imm < 0:
+        imm = (1 << bits) + imm
+    return imm & ((1 << bits) - 1)
+
 def parse_immediate(imm):
-    if imm.startswith("'") and imm.endswith("'"):
+    imm = imm.strip()
+    if (imm.startswith("'") and imm.endswith("'") and len(imm) == 3):
         return ord(imm[1])
-    if imm.startswith('"') and imm.endswith('"'):
+    if (imm.startswith('"') and imm.endswith('"')):
         return [ord(c) for c in imm[1:-1]]
-    imm = imm.lower()
-    if imm.startswith('0x'):
-        return int(imm, 16)
-    elif imm.startswith('x'):
-        return int('0x' + imm[1:], 16)
-    elif imm.startswith('0b'):
-        return int(imm, 2)
-    elif imm.startswith('b'):
-        return int('0b' + imm[1:], 2)
+    imm_lower = imm.lower()
+    if imm_lower.startswith('0x'):
+        return int(imm_lower, 16)
+    elif imm_lower.startswith('x'):
+        return int('0x' + imm_lower[1:], 16)
+    elif imm_lower.startswith('0b'):
+        return int(imm_lower, 2)
+    elif imm_lower.startswith('b'):
+        return int('0b' + imm_lower[1:], 2)
     else:
         return int(imm)
-
 
 def expand_pseudo(tokens):
     if tokens[0] == 'nop':
         return [['addi', 'x0', 'x0', '0']]
     elif tokens[0] == 'li':
         rd, imm = tokens[1], parse_immediate(tokens[2])
-        if isinstance(imm, list): 
-            imm = sum([b << (8*i) for i,b in enumerate(imm)])
+        if isinstance(imm, list):
+            imm = sum([b << (8*i) for i, b in enumerate(imm)])
         if -2048 <= imm < 2048:
             return [['addi', rd, 'x0', str(imm)]]
         else:
             upper = (imm + (1 << 11)) >> 12
             low = imm - (upper << 12)
-            return [['lui', rd, str(upper)], ['addi', rd, rd, str(low)]] 
+            return [['lui', rd, str(upper)], ['addi', rd, rd, str(low)]]
     elif tokens[0] == 'mv':
         return [['addi', tokens[1], tokens[2], '0']]
     elif tokens[0] == 'not':
         return [['xori', tokens[1], tokens[2], '-1']]
     elif tokens[0] == 'neg':
         return [['sub', tokens[1], 'x0', tokens[2]]]
-    return [tokens]
+    else:
+        return [tokens]
 
 def encode_r(funct7, rs2, rs1, funct3, rd, opcode):
     return (
@@ -94,8 +100,9 @@ def encode_r(funct7, rs2, rs1, funct3, rd, opcode):
     )
 
 def encode_i(imm, rs1, funct3, rd, opcode):
+    imm = to_signed_imm(imm, 12)
     return (
-        (imm & 0xFFF) << 20 |
+        (imm) << 20 |
         (rs1 & 0x1F) << 15 |
         (funct3 & 0x07) << 12 |
         (rd & 0x1F) << 7 |
@@ -103,6 +110,7 @@ def encode_i(imm, rs1, funct3, rd, opcode):
     )
 
 def encode_s(imm, rs2, rs1, funct3, opcode):
+    imm = to_signed_imm(imm, 12)
     imm11_5 = (imm >> 5) & 0x7F
     imm4_0 = imm & 0x1F
     return (
@@ -115,51 +123,45 @@ def encode_s(imm, rs2, rs1, funct3, opcode):
     )
 
 def encode_b(imm, rs2, rs1, funct3, opcode):
-    imm = imm >> 1  # RISC-V branch offsets are multiples of 2
-    imm12 = (imm >> 11) & 0x1
-    imm10_5 = (imm >> 5) & 0x3F
-    imm4_1 = (imm >> 1) & 0xF
-    imm11 = (imm >> 10) & 0x1
+    imm = to_signed_imm(imm, 13)
+    imm_shift = imm >> 1
+    imm12 = (imm_shift >> 11) & 0x1
+    imm10_5 = (imm_shift >> 5) & 0x3F
+    imm4_1 = (imm_shift >> 1) & 0xF
+    imm11 = (imm_shift >> 10) & 0x1
     return (
-        (imm12) << 31 |
-        (imm11) << 7 |
-        (imm10_5) << 25 |
-        (imm4_1) << 8 |
+        (imm12 << 31) |
+        (imm10_5 << 25) |
         (rs2 & 0x1F) << 20 |
         (rs1 & 0x1F) << 15 |
         (funct3 & 0x07) << 12 |
+        (imm4_1 << 8) |
+        (imm11 << 7) |
         (opcode & 0x7F)
     )
 
-#def encode_u(imm, rd, opcode):
-    #return (
-      #  (imm & 0xFFFFF000) |
-     #   (rd & 0x1F) << 7 |
-    #    (opcode & 0x7F)
-   # )
 def encode_u(imm, rd, opcode):
-    # The immediate for U-type is the upper 20 bits.
-    # The assembler should place these bits in bits 31-12 of the instruction.
     return (
-        ((imm << 12) & 0xFFFFF000) |
-        ((rd & 0x1F) << 7) |
-        (opcode & 0x7F)
-    )
-def encode_j(imm, rd, opcode):
-    imm = imm >> 1  # offset is multiple of 2
-    imm20 = (imm >> 19) & 0x1
-    imm10_1 = (imm >> 1) & 0x3FF
-    imm11 = (imm >> 10) & 0x1
-    imm19_12 = (imm >> 11) & 0xFF
-    return (
-        (imm20) << 31 |
-        (imm19_12) << 12 |
-        (imm11) << 20 |
-        (imm10_1) << 21 |
+        (imm << 12) & 0xFFFFF000 |
         (rd & 0x1F) << 7 |
         (opcode & 0x7F)
     )
 
+def encode_j(imm, rd, opcode):
+    imm = to_signed_imm(imm, 21)
+    imm_shift = imm >> 1
+    imm20 = (imm_shift >> 19) & 0x1
+    imm10_1 = (imm_shift >> 0) & 0x3FF
+    imm11 = (imm_shift >> 10) & 0x1
+    imm19_12 = (imm_shift >> 11) & 0xFF
+    return (
+        (imm20 << 31) |
+        (imm19_12 << 12) |
+        (imm11 << 20) |
+        (imm10_1 << 21) |
+        (rd & 0x1F) << 7 |
+        (opcode & 0x7F)
+    )
 
 def assemble_file(input_filename, output_filename):
     with open(input_filename, 'r') as f:
@@ -178,7 +180,8 @@ def assemble_file(input_filename, output_filename):
             pc = parse_immediate(line.split()[1])
         elif line.startswith('.align'):
             align = int(line.split()[1])
-            while pc % (2**align): pc += 1
+            while pc % (2**align):
+                pc += 1
         elif line.startswith('.word'):
             val = parse_immediate(line.split()[1])
             data_segment[pc] = val & 0xFFFFFFFF
@@ -205,7 +208,7 @@ def assemble_file(input_filename, output_filename):
     output = {}
     for pc, tokens in instructions:
         try:
-            mnemonic = tokens[0]
+            mnemonic = tokens[0].lower()
             info = instruction_set.get(mnemonic)
             if not info:
                 raise ValueError(f"Unknown instruction: {mnemonic}")
@@ -217,22 +220,24 @@ def assemble_file(input_filename, output_filename):
             elif fmt == 'I':
                 rd = reg_alias(tokens[1])
                 if mnemonic in ['lw', 'lh', 'jalr']:
-                    imm, rs1 = tokens[2].split('(')
-                    rs1 = reg_alias(rs1[:-1])
+                    imm_rs1 = tokens[2]
+                    imm, rs1_str = imm_rs1.split('(')
+                    rs1 = reg_alias(rs1_str[:-1])
                 else:
                     rs1 = reg_alias(tokens[2])
                     imm = tokens[3]
                 instr = encode_i(parse_immediate(imm), rs1, info['funct3'], rd, info['opcode'])
             elif fmt == 'S':
                 rs2 = reg_alias(tokens[1])
-                imm, rs1 = tokens[2].split('(')
-                rs1 = reg_alias(rs1[:-1])
+                imm_rs1 = tokens[2]
+                imm, rs1_str = imm_rs1.split('(')
+                rs1 = reg_alias(rs1_str[:-1])
                 instr = encode_s(parse_immediate(imm), rs2, rs1, info['funct3'], info['opcode'])
             elif fmt == 'B':
                 rs1 = reg_alias(tokens[1])
                 rs2 = reg_alias(tokens[2])
                 label = tokens[3]
-                offset = symbol_table[label] - pc
+                offset = symbol_table[label] - pc - 4  
                 instr = encode_b(offset, rs2, rs1, info['funct3'], info['opcode'])
             elif fmt == 'U':
                 rd = reg_alias(tokens[1])
@@ -241,7 +246,7 @@ def assemble_file(input_filename, output_filename):
             elif fmt == 'J':
                 rd = reg_alias(tokens[1])
                 label = tokens[2]
-                offset = symbol_table[label] - pc
+                offset = symbol_table[label] - pc - 4 
                 instr = encode_j(offset, rd, info['opcode'])
             output[pc] = instr
         except Exception as e:
@@ -254,11 +259,11 @@ def assemble_file(input_filename, output_filename):
         for addr in sorted(output.keys()):
             f.write(output[addr].to_bytes(4, 'little'))
 
-assemble_file('assembletest.s', 'assembletest.bin')
+if __name__ == '__main__':
+    assemble_file('assembletest.s', 'assembletest.bin')
 
-
-with open('assembletest.bin', 'rb') as f:
-    data = f.read()
-    for i in range(0, len(data), 4):
-        word = data[i:i+4]
-        print(f"{i:04x}: {word.hex()}")
+    with open('assembletest.bin', 'rb') as f:
+        data = f.read()
+        for i in range(0, len(data), 4):
+            word = data[i:i+4]
+            print(f"{i:04x}: {word.hex()}")
