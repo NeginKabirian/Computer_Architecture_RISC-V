@@ -224,7 +224,6 @@ void CPU::decode(uint32_t instruction) {
 void CPU::clockTick() {
     switch(stage) {
     case CPUStage::Fetch1:
-        regFile->printRegisters();
         AR = PC;
         stage = CPUStage::Fetch2;
         break;
@@ -266,10 +265,10 @@ void CPU::clockTick() {
 
 
 
-#include <QDebug>
-#include <QString>
+
 
 void CPU::printState() const {
+
     // --- چاپ وضعیت اصلی ---
     qDebug() <<"cycleStep : " << cycleStep;
     qDebug().noquote() << QString("Stage: %1 | PC: 0x%2 (%3) | AR: 0x%4 (%5) | IR: 0x%6")
@@ -299,6 +298,8 @@ void CPU::printState() const {
     } else {
         lastPrintedIR = 0xFFFFFFFF;
     }
+    regFile->printRegisters();
+    memory->dump(0, 32);
 }
 
 void CPU::executeMicroStep() {
@@ -614,7 +615,7 @@ void CPU::executeMicroStep() {
 
 
         // ---------------------- BEQ ----------------------
-    case inst::beq:
+        case inst::beq:
         if (cycleStep == 3) { // T3
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
@@ -637,6 +638,7 @@ void CPU::executeMicroStep() {
             stage = CPUStage::Fetch1;
         }
         break;
+
 
 
         // ---------------------- BNE ----------------------
