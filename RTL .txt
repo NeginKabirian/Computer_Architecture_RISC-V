@@ -105,7 +105,6 @@ Lh :
 	IC1T7:   DR ← M[AR[15:0]]                        
 	IC1T8:  R[IR[11:7]] ← SignExtend(DR[15:0])        
 	
-	// بپرسیم DR خالی اوکیه یا نه ???????
 
 LW :
 	IC2T3: A ← R[IR[19:15]]             
@@ -113,7 +112,7 @@ LW :
 	IC2T5: DR ← A + Imm
 	IC2T6: AR ← DR                 
 	IC2T7: DR ← M[AR]                 
-	IC2T8: R[IR[11:7]] ← DR           
+	IC2T8: R[IR[11:7]] ← SignExtend(DR[31:0])           
 
 SH :
 	SC1T3: A ← R[IR[19:15]]            
@@ -136,8 +135,8 @@ SW :
 BEQ :
 	BC0T3:  A ← R[IR[19:15]]                  
 	BC0T4:  B ← R[IR[24:20]]                  
-	BC0T5:  DR ← A - B, r ← DR       ??
-	BC0T6:  A ← PC                            
+	BC0T5:  DR ← A - B, r ← DR     
+	BC0T6:  A ← PC - 4                           
 	BC0T7:  Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC0T8:  DR ← A + Imm                      
 	BC0rT9: PC ← DR                          
@@ -146,7 +145,7 @@ BNE :
 	BC1T3: A ← R[IR[19:15]]                  
 	BC1T4: B ← R[IR[24:20]]                  
 	BC1T5: DR ← A - B, r ← DR     
-	BC1T6: A ← PC                            
+	BC1T6: A ← PC - 4                          
 	BC1T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC1T8: DR ← A + Imm
 	BC1r'T9: PC ← DR                          
@@ -155,7 +154,7 @@ BLt :
 	BC4T3: A ← R[IR[19:15]]                  
 	BC4T4: B ← R[IR[24:20]]                 
 	BC4T5: DR ← A - B      				                           
-	BC4T6: A ← PC, r ← DR[31]                
+	BC4T6: A ← PC - 4, r ← DR[31]                
 	BC4T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC4T8: DR ← A + Imm                     
 	BC4rT9: PC ← DR                          
@@ -164,7 +163,7 @@ BGE :
 	BC5T3: A ← R[IR[19:15]]                 
 	BC5T4: B ← R[IR[24:20]]                  
 	BC5T5: DR ← A - B      				                           
-	BC5T6: A ← PC, r ← DR[31]               
+	BC5T6: A ← PC - 4, r ← DR[31]               
 	BC5T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC5T8: DR ← A + Imm                      
 	BC5rT9: PC ← DR                          
@@ -173,7 +172,7 @@ BLTU :
 	BC6T3: A ← R[IR[19:15]]
 	BC6T4: B ← R[IR[24:20]]
 	BC6T5: DR ← A - B               
-	BC6T6: A ← PC, r ← E 
+	BC6T6: A ← PC - 4, r ← E 
 	BC6T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC6T8: DR ← A + Imm                      
 	BC6r'T9: PC ← DR
@@ -182,19 +181,18 @@ BGEU :
 	BC7T3: A ← R[IR[19:15]]
 	BC7T4: B ← R[IR[24:20]]
 	BC7T5:  DR ← A - B               
-	BC7T6:  A ← PC, r ← E 
+	BC7T6:  A ← PC - 4, r ← E 
 	BC7T7: Imm ← SignExtend({IR[31], IR[7], IR[30:25], IR[11:8], 0})
 	BC7T8: DR ← A + Imm                      
 	BC7rT9: PC ← DR
 
-JAL :
-	
-	JT3: A ← PC                 
-	JT4: R[IR[11:7]] ← A        
-	JT5: DR ← A - 4                   
-	JT6: A ← DR, Imm ← SignExtend({IR[31], IR[19:12], IR[20], IR[30:21], 0})
-	JT7: DR ← A + Imm           
-	JT8: PC ← DR
+JAL :???
+                 
+	JT3: R[IR[11:7]] ← PC        
+	JT3: A ← PC                   
+	JT5: Imm ← SignExtend({IR[31], IR[19:12], IR[20], IR[30:21], 0})
+	JT6: DR ← A + Imm           
+	JT7: PC ← DR
 
 JALR :
 	1100111C0T3: A ← R[IR[19:15]]

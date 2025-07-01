@@ -1,6 +1,6 @@
 #include "cpu.h"
 
-CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) { reset(); }
+CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) {}
 
 void CPU::reset() {
     PC = 0;
@@ -82,12 +82,15 @@ void CPU::decode(uint32_t instruction) {
 
         // I-type ALU immediate (opcode = 0b0010011)
     case 0b0010011: {
-        int32_t imm = static_cast<int32_t>(instruction) >> 20;  // sign-extended immediate
-        uint8_t shamt = (instruction >> 20) & 0x1F;             // shift amount for shifts
+        uint32_t imm_12 = (instruction >> 20) & 0xFFF;
+        int32_t imm = (imm_12 & 0x800) ? (imm_12 | 0xFFFFF000) : imm_12; // sign-extend 12 بیت
+        uint8_t shamt = imm_12 & 0x1F;  // 5 بیت شیفت
         switch (funct3) {
         case 0x0:
             currentInstruction.opcode = inst::addi;
             currentInstruction.immediate = imm;
+            currentInstruction.rs1 = (instruction >> 15) & 0x1F;
+            currentInstruction.rd  = (instruction >> 7)  & 0x1F;
             break;
         case 0x1:
             if (funct7 == 0x00) {
@@ -287,6 +290,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
+            std::cout << "After AND: x10 = 0x" << std::hex << regFile->read(10) << std::endl;
             stage = CPUStage::Fetch1;
         }
         break;
@@ -747,7 +751,7 @@ void CPU::executeMicroStep() {
     case inst::lui:
         if (cycleStep == 3) { // UT3
             Imm = currentInstruction.immediate;
-            DR = Imm << 12;
+            DR = Imm;
             cycleStep++;
         } else if (cycleStep == 4) { // UT4
             regFile->write(currentInstruction.rd, DR);
