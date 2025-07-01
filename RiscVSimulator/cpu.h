@@ -2,6 +2,7 @@
 #define CPU_H
 
 #include "alu.h"
+#include "computersimulator.h"
 #include "memory.h"
 #include <iostream>
 #include <RegisterFile.h>
@@ -32,6 +33,7 @@ private:
     uint32_t A = 0, B = 0;
     uint32_t Imm = 0;
     mutable uint32_t lastPrintedIR = 0xFFFFFFFF;
+    ComputerSimulator *ui;
 public:
     void reset() ;
     ALU Alu;
@@ -42,6 +44,7 @@ public:
     //void execute();
     void clockTick();
     void executeMicroStep();
+    void setSimulator(ComputerSimulator *simulator);
     void printState() const;
     const DecodedInstruction& getCurrentInstruction() const { return currentInstruction; }
     uint32_t getPC() const { return PC; }
