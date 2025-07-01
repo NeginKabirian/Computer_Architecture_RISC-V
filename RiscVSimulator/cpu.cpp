@@ -219,6 +219,8 @@ void CPU::decode(uint32_t instruction) {
 
 
 
+
+
 void CPU::clockTick() {
     switch(stage) {
     case CPUStage::Fetch1:
@@ -261,18 +263,41 @@ void CPU::clockTick() {
 }
 
 
-void CPU::printState() const {
-    qDebug().noquote() << QString("Stage: %1 | PC: 0x%2 | AR: 0x%3 | IR: 0x%4")
-                              .arg(static_cast<int>(stage))
-                              .arg(PC, 8, 16, QChar('0'))
-                              .arg(AR, 8, 16, QChar('0'))
-                              .arg(IR, 8, 16, QChar('0'));
 
+
+
+#include <QDebug>
+#include <QString>
+
+void CPU::printState() const {
+    // --- چاپ وضعیت اصلی ---
+    qDebug() <<"cycleStep : " << cycleStep;
+    qDebug().noquote() << QString("Stage: %1 | PC: 0x%2 (%3) | AR: 0x%4 (%5) | IR: 0x%6")
+                              .arg(static_cast<int>(stage))
+                              .arg(PC, 8, 16, QChar('0')).arg(PC) // هگز و سپس دسیمال
+                              .arg(AR, 8, 16, QChar('0')).arg(AR)
+                              .arg(IR, 8, 16, QChar('0')); // برای IR معمولاً دسیمال معنی‌دار نیست
+
+    // --- چاپ رجیسترهای داخلی ---
+    qDebug().noquote() << QString("      -> Internal Regs | A: 0x%1 (%2) | B: 0x%3 (%4) | DR: 0x%5 (%6)")
+                              .arg(A, 8, 16, QChar('0')).arg(A) // هگز و سپس دسیمال (بدون علامت)
+                              .arg(B, 8, 16, QChar('0')).arg(B)
+                              .arg(DR, 8, 16, QChar('0')).arg(DR);
+
+    // چاپ Imm به صورت جداگانه برای نمایش مقدار با علامت
+    qDebug().noquote() << QString("                      | Imm: 0x%1 (%2)")
+                              .arg(static_cast<uint32_t>(Imm), 8, 16, QChar('0')) // هگز (کست به بدون علامت برای نمایش صحیح)
+                              .arg(static_cast<int32_t>(Imm));                     // دسیمال (با علامت)
+
+
+    // --- چاپ اطلاعات دیکود شده (بدون تغییر) ---
     if (stage == CPUStage::Exec) {
         if (IR != lastPrintedIR) {
-            currentInstruction.print();
+            currentInstruction.print(); // تابع print خود immediate را با علامت چاپ می‌کند
             lastPrintedIR = IR;
         }
+    } else {
+        lastPrintedIR = 0xFFFFFFFF;
     }
 }
 
