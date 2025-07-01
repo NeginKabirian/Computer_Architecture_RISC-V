@@ -191,8 +191,9 @@ void CPU::decode(uint32_t instruction) {
 
         // U-type AUIPC (opcode = 0b0010111)
     case 0b0010111:
-        currentInstruction.immediate = instruction & 0xFFFFF000;
         currentInstruction.opcode = inst::auipc;
+        currentInstruction.rd = (instruction >> 7) & 0x1F;
+        currentInstruction.immediate = instruction >> 12;
         break;
 
         // J-type JAL (opcode = 0b1101111)
@@ -734,7 +735,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
             cycleStep++;
         } else if (cycleStep == 6) { // T6
-            DR = A + Imm;
+            DR = Alu.add(A, Imm);
             cycleStep++;
         } else if (cycleStep == 7) {
             A = regFile->read(currentInstruction.rs1);
@@ -751,7 +752,7 @@ void CPU::executeMicroStep() {
     case inst::lui:
         if (cycleStep == 3) { // UT3
             Imm = currentInstruction.immediate;
-            DR = Imm;
+            DR = Alu.passThrough(Imm);
             cycleStep++;
         } else if (cycleStep == 4) { // UT4
             regFile->write(currentInstruction.rd, DR);
@@ -763,17 +764,17 @@ void CPU::executeMicroStep() {
         // ---------------------- AUIPC ----------------------
     case inst::auipc:
         if (cycleStep == 3) { // UT3
-            A = PC;
+            A = PC - 4;
             cycleStep++;
         } else if (cycleStep == 4) { // UT4
             Imm = currentInstruction.immediate;
-            DR = Imm << 12;
+            DR = Alu.sll(Imm, 12);
             cycleStep++;
         } else if (cycleStep == 5) { // UT5
             B = DR;
             cycleStep++;
         } else if (cycleStep == 6) { // UT6
-            DR = A + B;
+            DR = Alu.add(A, B);
             cycleStep++;
         } else if (cycleStep == 7) { // UT7
             regFile->write(currentInstruction.rd, DR);
@@ -791,10 +792,10 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 5) {
-            regFile->write(currentInstruction.rd, PC + 4);  // return address
+            DR = Alu.add(A, Imm);
             cycleStep++;
         } else if (cycleStep == 6) {
-            PC = A + Imm;
+            PC = DR;
             stage = CPUStage::Fetch1;
         }
         break;
@@ -808,18 +809,9 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 5) { // T5
-            DR = A + Imm;
+            DR = Alu.add(A, Imm);
             cycleStep++;
         } else if (cycleStep == 6) { // T6
-            regFile->write(currentInstruction.rd, PC);
-            cycleStep++;
-        } else if (cycleStep == 7) { // T7
-            A = DR;
-            cycleStep++;
-        } else if (cycleStep == 8) { // T8
-            DR = A & 0xFFFFFFFE;  // همون A & ~1
-            cycleStep++;
-        } else if (cycleStep == 9) { // T9
             PC = DR;
             stage = CPUStage::Fetch1;
         }
@@ -834,7 +826,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = A * B;
+            DR = Alu.multiply(A, B);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -891,7 +883,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 5) {
             if (B == 0)
-                DR = A;  // RISC-V: باقی‌مانده division by zero همان مقسوم
+                DR = Alu.passThrough(A);  // RISC-V: باقی‌مانده division by zero همان مقسوم
             else
                 DR = static_cast<uint32_t>(static_cast<int32_t>(A) % static_cast<int32_t>(B));
             cycleStep++;

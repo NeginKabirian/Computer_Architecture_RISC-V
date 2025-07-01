@@ -24,3 +24,5 @@ uint32_t ALU::sra(uint32_t a, uint32_t b) {
 uint32_t ALU::passThrough(uint32_t val) {
     return val;
 }
+
+uint32_t ALU::multiply(uint32_t a, uint32_t b) {  return a * b; }
