@@ -1,7 +1,9 @@
-    jal x1, label     
-    li x2, 0          
-    j end
+    li x1, 0         # x1 = 0
+    jal x5, jump     
+    li x1, 999       
 
-label:
-    li x2, 42       
-end:
+jump:
+    li x1, 123
+    jalr x0, 0(x5)   
+
+    li x2, 77        
