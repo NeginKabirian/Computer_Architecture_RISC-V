@@ -231,13 +231,16 @@ def assemble_file(input_filename, output_filename):
             elif fmt == 'I':
                 rd = reg_alias(tokens[1])
                 if mnemonic in ['lw', 'lh', 'jalr']:
-                    imm_rs1 = tokens[2]
-                    imm, rs1_str = imm_rs1.split('(')
-                    rs1 = reg_alias(rs1_str[:-1])
+                    try:
+                        imm_str, rs1_str = tokens[2].split('(')
+                        imm = parse_immediate(imm_str)
+                        rs1 = reg_alias(rs1_str[:-1])  
+                    except Exception as e:
+                        raise ValueError(f"Invalid format for {mnemonic} — expected imm(rs1), got: {tokens[2]}")
                 else:
                     rs1 = reg_alias(tokens[2])
-                    imm = tokens[3]
-                instr = encode_i(parse_immediate(imm), rs1, info['funct3'], rd, info['opcode'])
+                    imm = parse_immediate(tokens[3])
+                instr = encode_i(imm, rs1, info['funct3'], rd, info['opcode'])
             elif fmt == 'S':
                 rs2 = reg_alias(tokens[1])
                 imm_rs1 = tokens[2]
@@ -257,7 +260,7 @@ def assemble_file(input_filename, output_filename):
             elif fmt == 'J':
                 rd = reg_alias(tokens[1])
                 label = tokens[2]
-                offset = symbol_table[label] - pc
+                offset = symbol_table[label] - (pc + 4)
                 instr = encode_j(offset, rd, info['opcode'])
             output[pc] = instr
         except Exception as e:
