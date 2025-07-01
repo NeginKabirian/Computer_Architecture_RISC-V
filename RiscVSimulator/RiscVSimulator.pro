@@ -10,6 +10,7 @@ CONFIG += c++17
 
 SOURCES += \
     alu.cpp \
+    computersimulator.cpp \
     cpu.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -19,6 +20,7 @@ SOURCES += \
 HEADERS += \
     DecodedInstruction.h \
     alu.h \
+    computersimulator.h \
     cpu.h \
     mainwindow.h \
     memory.h \
