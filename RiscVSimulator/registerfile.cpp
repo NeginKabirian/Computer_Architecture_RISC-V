@@ -1,5 +1,4 @@
 #include "registerfile.h"
-#include <iostream>
 #include <QDebug>
 
 
@@ -14,6 +13,9 @@ uint32_t RegisterFile::read(uint8_t index) const {
 void RegisterFile::write(uint8_t index, uint32_t value) {
     if (index != 0)
         regs[index] = value;
+
+    QString hexValue = QString("0x%1").arg(value, 8, 16, QChar('0')).toUpper();
+    emit registerChanged(index, hexValue);
 }
 
 void RegisterFile::reset() {

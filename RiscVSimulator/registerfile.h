@@ -2,9 +2,10 @@
 #define REGISTERFILE_H
 #include <array>
 #include <cstdint>
+#include <QObject>
 
-
-class RegisterFile {
+class RegisterFile  : public QObject{
+    Q_OBJECT
 private:
     std::array<uint32_t, 32> regs;
 
@@ -20,6 +21,9 @@ public:
     const std::array<uint32_t, 32>& getAll() const;
 
     void printRegisters();
+
+signals:
+    void registerChanged(int index, QString content);
 };
 
 
