@@ -34,6 +34,7 @@ private:
     uint32_t Imm = 0;
     mutable uint32_t lastPrintedIR = 0xFFFFFFFF;
     ComputerSimulator *ui;
+    uint32_t tempA;
 public:
     void reset() ;
     ALU Alu;

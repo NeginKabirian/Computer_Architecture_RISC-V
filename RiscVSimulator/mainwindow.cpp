@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
+#include<QDir>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -16,6 +16,8 @@ MainWindow::MainWindow(QWidget *parent)
     if (!memory->loadFromFile(binaryPath, 0x0)) {
         std::cerr << "Halting simulation due to file loading error." << std::endl;
     }
+    qDebug() << "Current working directory:" << QDir::currentPath();
+
     memory->dump(0, 32);
 
 

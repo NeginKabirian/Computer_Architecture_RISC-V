@@ -140,6 +140,8 @@ void CPU::decode(uint32_t instruction) {
         if (funct3 == 0x0)
             currentInstruction.opcode = inst::jalr;
         currentInstruction.immediate = imm;
+        currentInstruction.rd  = (instruction >> 7) & 0x1F;
+        currentInstruction.rs1 = (instruction >> 15) & 0x1F;
         break;
     }
 
@@ -211,6 +213,7 @@ void CPU::decode(uint32_t instruction) {
             imm |= 0xFFF00000;
         currentInstruction.immediate = imm;
         currentInstruction.opcode = inst::jal;
+        currentInstruction.rd = (instruction >> 7) & 0x1F;
         break;
     }
 
@@ -227,7 +230,6 @@ void CPU::decode(uint32_t instruction) {
 void CPU::clockTick() {
     switch(stage) {
     case CPUStage::Fetch1:
-        regFile->printRegisters();
         AR = PC;
         ui->updateSpecRegs("AR", QString("0x%1").arg(AR, 4, 16, QChar('0')).toUpper());
         stage = CPUStage::Fetch2;
@@ -277,6 +279,7 @@ void CPU::clockTick() {
 
 
 void CPU::printState() const {
+
     // --- چاپ وضعیت اصلی ---
     qDebug() <<"cycleStep : " << cycleStep;
     qDebug().noquote() << QString("Stage: %1 | PC: 0x%2 (%3) | AR: 0x%4 (%5) | IR: 0x%6")
@@ -306,6 +309,8 @@ void CPU::printState() const {
     } else {
         lastPrintedIR = 0xFFFFFFFF;
     }
+    regFile->printRegisters();
+    memory->dump(0, 32);
 }
 
 void CPU::executeMicroStep() {
@@ -645,7 +650,7 @@ void CPU::executeMicroStep() {
 
 
         // ---------------------- BEQ ----------------------
-    case inst::beq:
+        case inst::beq:
         if (cycleStep == 3) { // T3
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
@@ -670,6 +675,7 @@ void CPU::executeMicroStep() {
             stage = CPUStage::Fetch1;
         }
         break;
+
 
 
         // ---------------------- BNE ----------------------
@@ -704,7 +710,7 @@ void CPU::executeMicroStep() {
     case inst::blt:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
-              
+            tempA = A;
             cycleStep++;
         }else if(cycleStep == 4){
             B = regFile->read(currentInstruction.rs2);
@@ -724,7 +730,7 @@ void CPU::executeMicroStep() {
             DR = A + Imm;
             cycleStep++;
         } else if (cycleStep == 9) {
-            if (static_cast<int32_t>(A) < static_cast<int32_t>(B))
+            if (static_cast<int32_t>(tempA) < static_cast<int32_t>(B))
                 PC = DR;
             stage = CPUStage::Fetch1;
         }
@@ -735,7 +741,7 @@ void CPU::executeMicroStep() {
     case inst::bge:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
-  
+            tempA = A;
             cycleStep++;
         }else if(cycleStep == 4){
             B = regFile->read(currentInstruction.rs2);
@@ -754,7 +760,7 @@ void CPU::executeMicroStep() {
             DR = A + Imm;
             cycleStep++;
         } else if (cycleStep == 9) {
-            if (static_cast<int32_t>(A) >= static_cast<int32_t>(B))
+            if (static_cast<int32_t>(tempA) >= static_cast<int32_t>(B))
                 PC = DR;
             stage = CPUStage::Fetch1;
         }
@@ -802,7 +808,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
             cycleStep++;
         } else if (cycleStep == 6) { // T6
-            DR = Alu.add(A, Imm);
+            DR = Alu.add(A, Imm << 1);
             cycleStep++;
         } else if (cycleStep == 7) {
             A = regFile->read(currentInstruction.rs1);
@@ -862,13 +868,17 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = Alu.add(A, Imm);
+            DR = Alu.add(PC, Imm);
+            regFile->write(currentInstruction.rd, A);
             cycleStep++;
         } else if (cycleStep == 6) {
             PC = DR;
             stage = CPUStage::Fetch1;
         }
         break;
+
+
+
 
         // ---------------------- JALR ----------------------
     case inst::jalr:
@@ -878,11 +888,13 @@ void CPU::executeMicroStep() {
         } else if (cycleStep == 4) { // T4
             Imm = currentInstruction.immediate;
             cycleStep++;
-        } else if (cycleStep == 5) { // T5
+        } else if (cycleStep == 5) {
+            DR = PC;
+            regFile->write(currentInstruction.rd, DR);  // save return address
             DR = Alu.add(A, Imm);
             cycleStep++;
-        } else if (cycleStep == 6) { // T6
-            PC = DR;
+        } else if (cycleStep == 6) {
+            PC = Alu.and_op(DR, 0xFFFFFFFE);  // ensure alignment
             stage = CPUStage::Fetch1;
         }
         break;
