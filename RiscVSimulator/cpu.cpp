@@ -1,4 +1,7 @@
 #include "cpu.h"
+#include <QDebug>
+#include <QString>
+
 
 CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) {}
 
@@ -228,12 +231,17 @@ void CPU::clockTick() {
     switch(stage) {
     case CPUStage::Fetch1:
         AR = PC;
+        ui->updateSpecRegs("AR", QString("0x%1").arg(AR, 4, 16, QChar('0')).toUpper());
         stage = CPUStage::Fetch2;
         break;
 
     case CPUStage::Fetch2:
         IR = memory->read32(AR);
         PC += 4;
+        ui->updateSpecRegs("PC", QString("0x%1").arg(PC, 8, 16, QChar('0')).toUpper());
+        ui->updateSpecRegs("IR", QString("0x%1").arg(IR, 8, 16, QChar('0')).toUpper());
+
+
         stage = CPUStage::Decode;
         break;
 
@@ -317,6 +325,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 5) {
             DR = Alu.add(A, B);
+
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -330,12 +339,17 @@ void CPU::executeMicroStep() {
     case inst::sub:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+             
+
             cycleStep++;
         } else if (cycleStep == 4) {
-            B = regFile->read(currentInstruction.rs2);
+            B = regFile->read(currentInstruction.rs2);\
+                 
+
             cycleStep++;
         } else if (cycleStep == 5) {
             DR = Alu.sub(A, B);
+
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -348,12 +362,16 @@ void CPU::executeMicroStep() {
     case inst::_xor:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+             
+
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
+              
             cycleStep++;
         } else if (cycleStep == 5) {
             DR = Alu.xor_op(A, B);
+             ui->updateSpecRegs("DR", QString("0x%1").arg(DR, 8, 16, QChar('0')).toUpper());
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -366,6 +384,7 @@ void CPU::executeMicroStep() {
     case inst::_or:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -384,6 +403,7 @@ void CPU::executeMicroStep() {
     case inst::_and:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -402,6 +422,7 @@ void CPU::executeMicroStep() {
     case inst::sll:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -420,6 +441,7 @@ void CPU::executeMicroStep() {
     case inst::srl:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -438,6 +460,7 @@ void CPU::executeMicroStep() {
     case inst::sra:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -456,6 +479,7 @@ void CPU::executeMicroStep() {
     case inst::slt:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -479,6 +503,7 @@ void CPU::executeMicroStep() {
     case inst::sltu:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -497,6 +522,7 @@ void CPU::executeMicroStep() {
     case inst::addi:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             Imm = currentInstruction.immediate;
@@ -515,6 +541,7 @@ void CPU::executeMicroStep() {
     case inst::lh:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             Imm = currentInstruction.immediate;
@@ -542,6 +569,7 @@ void CPU::executeMicroStep() {
     case inst::lw:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             Imm = currentInstruction.immediate;
@@ -554,6 +582,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 7) {
             A = memory->read32(AR);
+              
             DR = Alu.passThrough(A);
             cycleStep++;
         } else if (cycleStep == 8) {
@@ -567,6 +596,7 @@ void CPU::executeMicroStep() {
     case inst::sh:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -579,6 +609,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 7) {
             AR = DR;
+
             cycleStep++;
         } else if (cycleStep == 8) {
             DR = B & 0xFFFF;
@@ -594,6 +625,7 @@ void CPU::executeMicroStep() {
     case inst::sw:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             B = regFile->read(currentInstruction.rs2);
@@ -624,6 +656,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 4) { // T4
             A = PC - 4;
+              
             cycleStep++;
         } else if (cycleStep == 5) { // T5
             Imm = currentInstruction.immediate;
@@ -633,6 +666,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 7) { // T7
             A = regFile->read(currentInstruction.rs1);
+              
 
             cycleStep++;
         } else if (cycleStep == 8) { // T8
@@ -651,6 +685,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 4) { // T4
             A = PC - 4;
+              
             cycleStep++;
         } else if (cycleStep == 5) { // T5
             Imm = currentInstruction.immediate;
@@ -660,6 +695,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 7) { // T7
             A = regFile->read(currentInstruction.rs1);
+              
 
             cycleStep++;
         } else if (cycleStep == 8) { // T8
@@ -685,6 +721,7 @@ void CPU::executeMicroStep() {
 
         } else if (cycleStep == 6) {
             A = PC - 4;
+              
             cycleStep++;
         } else if (cycleStep == 7) {
             Imm = currentInstruction.immediate;
@@ -714,6 +751,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 6) {
             A = PC - 4;
+              
             cycleStep++;
         } else if (cycleStep == 7) {
             Imm = currentInstruction.immediate;
@@ -738,6 +776,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 4) { // T4
             A = PC - 4;
+              
             cycleStep++;
         } else if (cycleStep == 5) { // T5
             Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
@@ -747,6 +786,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 7) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 8) { // T8
             if (A < B)
@@ -762,6 +802,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 4) { // T4
             A = PC - 4;
+              
             cycleStep++;
         } else if (cycleStep == 5) { // T5
             Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
@@ -771,6 +812,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 7) {
             A = regFile->read(currentInstruction.rs1);
+              
             cycleStep++;
         } else if (cycleStep == 8) { // T8
             if (A >= B)
@@ -797,6 +839,7 @@ void CPU::executeMicroStep() {
     case inst::auipc:
         if (cycleStep == 3) { // UT3
             A = PC - 4;
+              
             cycleStep++;
         } else if (cycleStep == 4) { // UT4
             Imm = currentInstruction.immediate;
@@ -819,6 +862,7 @@ void CPU::executeMicroStep() {
     case inst::jal:
         if (cycleStep == 3) {
             A = PC;
+              
             cycleStep++;
         } else if (cycleStep == 4) {
             Imm = currentInstruction.immediate;
@@ -937,4 +981,20 @@ void CPU::executeMicroStep() {
         //چجوری متوقف کنم برنامه رو؟
         break;
     }
+
+    ui->updateSpecRegs("A", QString("0x%1").arg(A, 8, 16, QChar('0')).toUpper());
+    ui->updateSpecRegs("B", QString("0x%1").arg(B, 8, 16, QChar('0')).toUpper());
+    ui->updateSpecRegs("IR", QString("0x%1").arg(IR, 8, 16, QChar('0')).toUpper());
+    ui->updateSpecRegs("DR", QString("0x%1").arg(DR, 8, 16, QChar('0')).toUpper());
+    ui->updateSpecRegs("AR", QString("0x%1").arg(AR, 4, 16, QChar('0')).toUpper());
+    ui->updateSpecRegs("PC", QString("0x%1").arg(PC, 8, 16, QChar('0')).toUpper());
+    ui->updateSpecRegs("IMM", QString("0x%1").arg(Imm, 8, 16, QChar('0')).toUpper());
+
+
+}
+
+void CPU::setSimulator(ComputerSimulator *simulator)
+{
+    ui=simulator;
+    ui->show();
 }

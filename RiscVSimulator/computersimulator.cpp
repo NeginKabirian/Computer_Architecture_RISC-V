@@ -20,6 +20,7 @@ ComputerSimulator::ComputerSimulator() {
     initRegisterFile();
     initSpecRegisters();
     initPulse();
+    initControlState();
 }
 
 void ComputerSimulator::updateRegisterFile(int index, QString content) {
@@ -46,6 +47,8 @@ void ComputerSimulator::updateSpecRegs(QString name, QString content) {
         aLineEdit->setText(content);
     } else if (name == "B") {
         bLineEdit->setText(content);
+    } else if (name == "IMM") {
+        immLineEdit->setText(content);
     }
 }
 
@@ -225,9 +228,64 @@ void ComputerSimulator::initPulse() {
                                               " color: #ff8b00;"
                                               " border-radius: 5px;"
                                               "}");
-    pulse->setGeometry(150, 270, 70, 50);
+    pulse->setGeometry(50, 450, 70, 50);
     pulse->setText("PULSE");
     pulse->setFont(QFont("Berlin Sans FB Demi", 15, QFont::Bold, false));
+}
+
+void ComputerSimulator::initControlState()
+{
+   auto controlRegsWidget = new QWidget(this);
+
+    // Create the form layout
+    QFormLayout *formLayout = new QFormLayout(controlRegsWidget);
+
+    // Create and style the QLineEdit components
+    stage = new QLineEdit();
+    cycleStep = new QLineEdit();
+    currInstruction = new QLineEdit();
+
+    // Apply styling to all QLineEdit components
+    QString lineEditStyle =
+        "QLineEdit {"
+        "    border: 2px solid red;"
+        "    background-color: #2b2b2b;"
+        "    color: white;"
+        "    padding: 5px;"
+        "    font-family: 'Courier New', monospace;"
+        "    font-size: 12px;"
+        "}";
+
+    stage->setStyleSheet(lineEditStyle);
+    cycleStep->setStyleSheet(lineEditStyle);
+    currInstruction->setStyleSheet(lineEditStyle);
+
+    // Make them read-only if they're for display purposes
+    stage->setReadOnly(true);
+    cycleStep->setReadOnly(true);
+    currInstruction->setReadOnly(true);
+
+    // Add rows to the form layout with labels
+    formLayout->addRow("Stage:", stage);
+    formLayout->addRow("Cycle Step:", cycleStep);
+    formLayout->addRow("Current Instruction:", currInstruction);
+
+    // Style the form layout container (optional)
+    QWidget *formWidget = new QWidget();
+    formWidget->setLayout(formLayout);
+    formWidget->setStyleSheet(
+        "QWidget {"
+        "    background-color: #2b2b2b;"
+        "}"
+        "QLabel {"
+        "    color: white;"
+        "    font-weight: bold;"
+        "    padding-right: 10px;"
+        "}"
+        );
+    // Position the widget
+    controlRegsWidget->setGeometry(500, 500, 250, 360);
+    controlRegsWidget->show();
 }
 /* void ComputerSimulator::resizeEvent(QResizeEvent* event)
  {
