@@ -77,14 +77,19 @@ def expand_pseudo(tokens):
         if -2048 <= imm < 2048:
             return [['addi', rd, 'x0', str(imm)]]
         else:
-            upper = (imm + 0x800) >> 12
+            upper = (imm + 0x800) >> 12  
             low = imm - (upper << 12)
             return [['lui', rd, str(upper)], ['addi', rd, rd, str(low)]]
-
+        
     elif tokens[0] == 'mv':
         return [['addi', tokens[1], tokens[2], '0']]
     elif tokens[0] == 'not':
-        return [['xori', tokens[1], tokens[2], '-1']]
+        return [
+            ['lui', 'x31', str(((-1 + 0x800) >> 12) & 0xFFFFF)],  
+            ['addi', 'x31', 'x31', str((-1 - (((-1 + 0x800) >> 12) << 12)) & 0xFFF)], 
+            ['xor', tokens[1], tokens[2], 'x31']
+        ]
+
     elif tokens[0] == 'neg':
         return [['sub', tokens[1], 'x0', tokens[2]]]
     else:
@@ -109,6 +114,7 @@ def encode_i(imm, rs1, funct3, rd, opcode):
         (rd & 0x1F) << 7 |
         (opcode & 0x7F)
     )
+
 
 def encode_s(imm, rs2, rs1, funct3, opcode):
     imm = to_signed_imm(imm, 12)
@@ -150,19 +156,21 @@ def encode_u(imm, rd, opcode):
 
 def encode_j(imm, rd, opcode):
     imm = to_signed_imm(imm, 21)
-    imm_shift = imm >> 1
-    imm20 = (imm_shift >> 19) & 0x1
-    imm10_1 = (imm_shift >> 0) & 0x3FF
-    imm11 = (imm_shift >> 10) & 0x1
-    imm19_12 = (imm_shift >> 11) & 0xFF
+
+    imm20    = (imm >> 20) & 0x1
+    imm10_1  = (imm >> 1)  & 0x3FF
+    imm11    = (imm >> 11) & 0x1
+    imm19_12 = (imm >> 12) & 0xFF
+
     return (
         (imm20 << 31) |
         (imm19_12 << 12) |
         (imm11 << 20) |
         (imm10_1 << 21) |
-        (rd & 0x1F) << 7 |
+        ((rd & 0x1F) << 7) |
         (opcode & 0x7F)
     )
+
 
 def assemble_file(input_filename, output_filename):
     with open(input_filename, 'r') as f:
@@ -247,7 +255,7 @@ def assemble_file(input_filename, output_filename):
             elif fmt == 'J':
                 rd = reg_alias(tokens[1])
                 label = tokens[2]
-                offset = symbol_table[label] - pc - 4 
+                offset = symbol_table[label] - pc
                 instr = encode_j(offset, rd, info['opcode'])
             output[pc] = instr
         except Exception as e:
