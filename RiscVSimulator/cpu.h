@@ -39,7 +39,7 @@ public:
     RegisterFile* regFile = nullptr;
     CPU(Memory* mem, RegisterFile* rf);
     void decode(uint32_t instruction);
-    void execute();
+    //void execute();
     void clockTick();
     void executeMicroStep();
     void printState() const;

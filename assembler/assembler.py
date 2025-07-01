@@ -68,7 +68,9 @@ def parse_immediate(imm):
         return int(imm)
 
 def expand_pseudo(tokens):
-    if tokens[0] == 'nop':
+    if tokens[0] == 'j':
+        return [['jal', 'x0', tokens[1]]]
+    elif tokens[0] == 'nop':
         return [['addi', 'x0', 'x0', '0']]
     elif tokens[0] == 'li':
         rd, imm = tokens[1], parse_immediate(tokens[2])
