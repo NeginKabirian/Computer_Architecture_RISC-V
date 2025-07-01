@@ -671,6 +671,7 @@ void CPU::executeMicroStep() {
     case inst::blt:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+            tempA = A;
             cycleStep++;
         }else if(cycleStep == 4){
             B = regFile->read(currentInstruction.rs2);
@@ -689,7 +690,7 @@ void CPU::executeMicroStep() {
             DR = A + Imm;
             cycleStep++;
         } else if (cycleStep == 9) {
-            if (static_cast<int32_t>(A) < static_cast<int32_t>(B))
+            if (static_cast<int32_t>(tempA) < static_cast<int32_t>(B))
                 PC = DR;
             stage = CPUStage::Fetch1;
         }
@@ -700,6 +701,7 @@ void CPU::executeMicroStep() {
     case inst::bge:
         if (cycleStep == 3) {
             A = regFile->read(currentInstruction.rs1);
+            tempA = A;
             cycleStep++;
         }else if(cycleStep == 4){
             B = regFile->read(currentInstruction.rs2);
@@ -717,7 +719,7 @@ void CPU::executeMicroStep() {
             DR = A + Imm;
             cycleStep++;
         } else if (cycleStep == 9) {
-            if (static_cast<int32_t>(A) >= static_cast<int32_t>(B))
+            if (static_cast<int32_t>(tempA) >= static_cast<int32_t>(B))
                 PC = DR;
             stage = CPUStage::Fetch1;
         }
