@@ -1,7 +1,9 @@
-li x1, 0xAAAA5555
-li x2, 0x12345678
-xor x3, x1, x2
-or  x4, x1, x2
-and x5, x1, x2
-sll x6, x5, x0        # shift by 0 = no effect
-sra x7, x1, x0        # shift right by 0 = no effect
+
+    li x1, 0x00000010     # x1 = 16
+    li x2, 0x00000008     # x2 = 8
+    bgeu x1, x2, label   
+    li x3, 0              
+    j end
+label:
+    li x3, 1             
+end:
