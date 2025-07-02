@@ -1,19 +1,22 @@
 #ifndef COMPUTERSIMULATOR_H
 #define COMPUTERSIMULATOR_H
 
-#include <QPushButton>
-#include <QTableWidget>
-#include <QTextEdit>
 #include "DecodedInstruction.h"
 #include "cpuStage.h"
-
+#include <QPushButton>
+#include <QSpinBox>
+#include <QTableWidget>
+#include <QTextEdit>
 
 class ComputerSimulator : public QWidget {
     Q_OBJECT
 public:
     ComputerSimulator();
-    QPushButton *pulse;
-    void initMemory(QString );
+    QPushButton *runAutoButton;
+    QPushButton *pushButton;
+    QPushButton *stopButton;
+    QSpinBox *speedSpinBox;
+    void initMemory(QString);
 public slots:
     void updateRegisterFile(int index, QString content);
     void updateSpecRegs(QString name, QString content);
@@ -32,14 +35,14 @@ private:
     void highlightRegister(int index);
     void clearHighlight();
 
-
     int registerFileHighlightedRow;
     int registerFileHighlightedCol;
     QColor *normalColor;
     QColor *highlightColor; // Light yellow...
 
     QWidget *specialRegsWidget;
-   QWidget *  controlRegsWidget;
+    QWidget *controlRegsWidget;
+    QWidget *pulseWidget;
     QLineEdit *pcLineEdit;
     QLineEdit *irLineEdit;
     QLineEdit *drLineEdit;
@@ -50,8 +53,8 @@ private:
     QLineEdit *stage;
     QLineEdit *cycleStep;
     QLineEdit *currInstruction;
-    QWidget* memoryWidget;
-    QTextEdit* memoryTextEdit;
+    QWidget *memoryWidget;
+    QTextEdit *memoryTextEdit;
 };
 
 #endif // COMPUTERSIMULATOR_H

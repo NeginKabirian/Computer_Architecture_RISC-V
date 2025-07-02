@@ -1,12 +1,13 @@
 #include "cpu.h"
+#include <QTimer>
 #include <QDebug>
 #include <QString>
-
+#include <QCoreApplication>
 
 CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) {}
 
 void CPU::reset() {
-    PC = 0;
+    PC = 0x1000;
     AR = 0;
     IR = 0;
     stage = CPUStage::Fetch1;
@@ -98,8 +99,8 @@ void CPU::decode(uint32_t instruction) {
         currentInstruction.has_imm=true;
 
         uint32_t imm_12 = (instruction >> 20) & 0xFFF;
-        int32_t imm = (imm_12 & 0x800) ? (imm_12 | 0xFFFFF000) : imm_12; // sign-extend 12 بیت
-        uint8_t shamt = imm_12 & 0x1F;  // 5 بیت شیفت
+        int32_t imm = (imm_12 & 0x800) ? (imm_12 | 0xFFFFF000) : imm_12;
+        uint8_t shamt = imm_12 & 0x1F;
         switch (funct3) {
         case 0x0:
             currentInstruction.opcode = inst::addi;
@@ -312,30 +313,30 @@ void CPU::clockTick() {
 
 void CPU::printState() const {
 
-    // --- چاپ وضعیت اصلی ---
+
     qDebug() <<"cycleStep : " << cycleStep;
     qDebug().noquote() << QString("Stage: %1 | PC: 0x%2 (%3) | AR: 0x%4 (%5) | IR: 0x%6")
                               .arg(static_cast<int>(stage))
-                              .arg(PC, 8, 16, QChar('0')).arg(PC) // هگز و سپس دسیمال
+                              .arg(PC, 8, 16, QChar('0')).arg(PC)
                               .arg(AR, 8, 16, QChar('0')).arg(AR)
-                              .arg(IR, 8, 16, QChar('0')); // برای IR معمولاً دسیمال معنی‌دار نیست
+                              .arg(IR, 8, 16, QChar('0'));
 
-    // --- چاپ رجیسترهای داخلی ---
+
     qDebug().noquote() << QString("      -> Internal Regs | A: 0x%1 (%2) | B: 0x%3 (%4) | DR: 0x%5 (%6)")
-                              .arg(A, 8, 16, QChar('0')).arg(A) // هگز و سپس دسیمال (بدون علامت)
+                              .arg(A, 8, 16, QChar('0')).arg(A)
                               .arg(B, 8, 16, QChar('0')).arg(B)
                               .arg(DR, 8, 16, QChar('0')).arg(DR);
 
-    // چاپ Imm به صورت جداگانه برای نمایش مقدار با علامت
+
     qDebug().noquote() << QString("                      | Imm: 0x%1 (%2)")
-                              .arg(static_cast<uint32_t>(Imm), 8, 16, QChar('0')) // هگز (کست به بدون علامت برای نمایش صحیح)
-                              .arg(static_cast<int32_t>(Imm));                     // دسیمال (با علامت)
+                              .arg(static_cast<uint32_t>(Imm), 8, 16, QChar('0'))
+                              .arg(static_cast<int32_t>(Imm));
 
 
-    // --- چاپ اطلاعات دیکود شده (بدون تغییر) ---
+
     if (stage == CPUStage::Exec) {
         if (IR != lastPrintedIR) {
-            currentInstruction.print(); // تابع print خود immediate را با علامت چاپ می‌کند
+            currentInstruction.print();
             lastPrintedIR = IR;
         }
     } else {
@@ -811,7 +812,7 @@ void CPU::executeMicroStep() {
               
             cycleStep++;
         } else if (cycleStep == 5) { // T5
-            Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
+            Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 6) { // T6
             DR = Alu.add(A, Imm << 1);
@@ -837,7 +838,7 @@ void CPU::executeMicroStep() {
               
             cycleStep++;
         } else if (cycleStep == 5) { // T5
-            Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
+            Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 6) { // T6
             DR = Alu.add(A, Imm << 1);
@@ -959,7 +960,7 @@ void CPU::executeMicroStep() {
         } else if (cycleStep == 5) {
             int64_t tmp = static_cast<int64_t>(static_cast<int32_t>(A)) *
                           static_cast<int64_t>(static_cast<int32_t>(B));
-            DR = static_cast<uint32_t>(tmp >> 32);  // ۳۲ بیت بالا
+            DR = static_cast<uint32_t>(tmp >> 32);
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
@@ -977,7 +978,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 5) {
             if (B == 0)
-                DR = static_cast<uint32_t>(-1);  // RISC-V: نتیجه division by zero
+                DR = static_cast<uint32_t>(-1);
             else
                 DR = static_cast<uint32_t>(static_cast<int32_t>(A) / static_cast<int32_t>(B));
             cycleStep++;
@@ -997,7 +998,7 @@ void CPU::executeMicroStep() {
             cycleStep++;
         } else if (cycleStep == 5) {
             if (B == 0)
-                DR = Alu.passThrough(A);  // RISC-V: باقی‌مانده division by zero همان مقسوم
+                DR = Alu.passThrough(A);
             else
                 DR = static_cast<uint32_t>(static_cast<int32_t>(A) % static_cast<int32_t>(B));
             cycleStep++;
@@ -1008,10 +1009,14 @@ void CPU::executeMicroStep() {
         break;
 
     default:
-        stage = CPUStage::HALT;
-        qDebug() << "HALT!";
-        exit(0);
-        break;
+    stage = CPUStage::HALT;
+    qDebug() << "HALT!";
+
+    QTimer::singleShot(5000, nullptr, []() {
+        qDebug() << "Exiting after 3 seconds.";
+        QCoreApplication::quit();
+    });
+    break;
     }
 
     ui->updateSpecRegs("A", QString("0x%1").arg(A, 8, 16, QChar('0')).toUpper());

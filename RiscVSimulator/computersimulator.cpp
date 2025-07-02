@@ -1,6 +1,5 @@
 #include "computersimulator.h"
 #include "DecodedInstruction.h"
-#include "cpu.h"
 #include <QFormLayout>
 #include <QGraphicsColorizeEffect>
 #include <QHeaderView>
@@ -206,12 +205,9 @@ void ComputerSimulator::initRegisterFile() {
         registerFile->setItem(row, 3, valueItem);
     }
 
-    int parentWidth = this->width();
-    // int parentHeight = this->height();
-
-    registerFile->setGeometry(parentWidth - tableWidth -
-                                  20, // 20px margin from right edge
-                              20,     // 20px margin from top
+    registerFile->setGeometry(
+                                  20, 
+                              20,     
                               tableWidth, tableHeight);
 
     //  Resize columns to fit content
@@ -233,9 +229,7 @@ void ComputerSimulator::initSpecRegisters() {
     // Create form layout
     QFormLayout *formLayout = new QFormLayout(specialRegsWidget);
     formLayout->setVerticalSpacing(10);
-    // Create line edits for each register
-    // stageLineEdit = new QLineEdit();
-    // cycleStepLineEdit = new QLineEdit();
+
     pcLineEdit = new QLineEdit();
     irLineEdit = new QLineEdit();
     drLineEdit = new QLineEdit();
@@ -243,10 +237,6 @@ void ComputerSimulator::initSpecRegisters() {
     aLineEdit = new QLineEdit();
     bLineEdit = new QLineEdit();
     immLineEdit = new QLineEdit();
-
-    // Make them read-only
-    // stageLineEdit->setReadOnly(true);
-    // cycleStepLineEdit->setReadOnly(true);
     pcLineEdit->setReadOnly(true);
     irLineEdit->setReadOnly(true);
     drLineEdit->setReadOnly(true);
@@ -263,9 +253,6 @@ void ComputerSimulator::initSpecRegisters() {
     bLineEdit->setText("0x00000000");
     immLineEdit->setText("0x00000000");
 
-    // Add widgets to form layout with labels
-    // formLayout->addRow("CPU Stage:", stageLineEdit);
-    // formLayout->addRow("Cycle Step:", cycleStepLineEdit);
     formLayout->addRow("PC (32-bit):", pcLineEdit);
     formLayout->addRow("IR (32-bit):", irLineEdit);
     formLayout->addRow("DR (32-bit):", drLineEdit);
@@ -304,24 +291,84 @@ void ComputerSimulator::initSpecRegisters() {
                                                           "}");
 
     // Position the widget
-    specialRegsWidget->setGeometry(635, 180, 250, 360);
+    specialRegsWidget->setGeometry(440, 165, 250, 300);
 }
 
 void ComputerSimulator::initPulse() {
-    pulse = new QPushButton(this);
-    pulse->setFlat(true);
-    pulse->setStyleSheet("QPushButton {"
-                         "    background-color:" +
-                         QString(bgColor) +
-                         ";"
-                                              " border: 5px solid #ff8b00;"
-                                              " color: #ff8b00;"
-                                              " border-radius: 5px;"
-                                              "}");
-    pulse->setGeometry(900, 450, 70, 50);
-    pulse->setText("PULSE");
-    pulse->setFont(QFont("Berlin Sans FB Demi", 15, QFont::Bold, false));
+
+
+
+    // Create container widget
+    pulseWidget = new QWidget(this);
+
+    // Layout for pulse controls
+    QHBoxLayout* layout = new QHBoxLayout(pulseWidget);
+    layout->setSpacing(15);
+    layout->setContentsMargins(10, 10, 10, 10);
+pulseWidget->setGeometry(440, 480, 632, 60);
+
+    // Create buttons and spin box
+    runAutoButton = new QPushButton("Run");
+    pushButton = new QPushButton("Pulse");
+    stopButton = new QPushButton("Stop");
+    speedSpinBox = new QSpinBox();
+
+    speedSpinBox->setRange(1, 1000);
+    speedSpinBox->setValue(100);
+    speedSpinBox->setSuffix(" ms");
+    speedSpinBox->setToolTip("Delay between steps");
+
+    // Add widgets to layout
+    layout->addWidget(runAutoButton);
+    layout->addWidget(pushButton);
+    layout->addWidget(stopButton);
+    layout->addWidget(speedSpinBox);
+
+    // Style the pulseWidget and children
+    pulseWidget->setStyleSheet(
+        "QWidget {"
+        "    background-color: #2d2d2d;"
+        "    border: 2px solid #ff8b00;"
+        "    border-radius: 8px;"
+        "}"
+        "QPushButton {"
+        "    background-color: #444;"
+        "    color: #ff8b00;"
+        "    border: 2px solid #ff8b00;"
+        "    border-radius: 5px;"
+        "    padding: 6px 12px;"
+        "    font-size: 14px;"
+        "    font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #555;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #333;"
+        "}"
+        "QPushButton:disabled {"
+        "    background-color: #222;"
+        "    color: gray;"
+        "    border-color: gray;"
+        "}"
+        "QSpinBox {"
+        "    background-color: #444;"
+        "    color: white;"
+        "    border: 1px solid #666;"
+        "    padding: 4px;"
+        "    font-family: 'Courier New';"
+        "    font-size: 13px;"
+        "}"
+        "QSpinBox::up-button, QSpinBox::down-button {"
+        "    width: 12px;"
+        "    background-color: #666;"
+        "    subcontrol-origin: border;"
+        "}"
+        );
+
+
 }
+
 
 void ComputerSimulator::initControlState() {
     // Create container widget
@@ -383,9 +430,46 @@ void ComputerSimulator::initControlState() {
                                                           "}");
 
     // Position the widget
-    controlRegsWidget->setGeometry(635, 20, 550, 150);
+    
+    controlRegsWidget->setGeometry(440, 20, 632, 130);
 
 }
+
+void ComputerSimulator::initMemory(QString memoryText) {
+    int borderThickness = 3;  
+    int width = 360 +2*borderThickness;
+    int height = 300 + 2 * borderThickness;
+
+    memoryWidget = new QWidget(this);
+    memoryWidget->setGeometry(705, 165, width, height);
+    memoryWidget->setStyleSheet(QString(
+                                    "QWidget {"
+                                    "    background-color: #222222;"
+                                    "    border: %1px solid #aa00ff;"
+                                    "    border-radius: 5px;"
+                                    "    padding: 10px;"
+                                    "}"
+                                    ).arg(borderThickness));
+
+    memoryTextEdit = new QTextEdit(memoryWidget);
+    memoryTextEdit->setReadOnly(true);
+    memoryTextEdit->setFont(QFont("Courier New", 11));
+    memoryTextEdit->setStyleSheet(
+        "QTextEdit {"
+        "    background-color: #333333;"
+        "    color: white;"
+        "    border: none;"
+        "    padding: 5px;"
+        "}");
+
+    // Place the text edit inside the widget with a margin so border is visible
+    memoryTextEdit->setGeometry(borderThickness, borderThickness,
+                                360, 300);
+
+    // Set text
+    memoryTextEdit->setPlainText(memoryText);
+}
+
 
 void ComputerSimulator::highlightRegister(int index) {
     // Clear previous highlight
@@ -429,108 +513,3 @@ void ComputerSimulator::clearHighlight() {
         registerFileHighlightedRow = -1;
     }
 }
-
-void ComputerSimulator::initMemory(QString memoryText) {
-    // Create a container widget for the memory display
-    memoryWidget = new QWidget(this);
-
-    // Set geometry and style
-    memoryWidget->setGeometry(1200, 0, 400, 300);  // Adjust position/size
-    memoryWidget->setStyleSheet("QWidget {"
-                                "    background-color: #222222;"
-                                "    border: 2px solid #aa00ff;"
-                                "    border-radius: 5px;"
-                                "    padding: 10px;"
-                                "}");
-
-    // Create a QTextEdit to display memory
-    memoryTextEdit = new QTextEdit(memoryWidget);
-    memoryTextEdit->setReadOnly(true);
-    memoryTextEdit->setFont(QFont("Courier New", 11));
-    memoryTextEdit->setStyleSheet("QTextEdit {"
-                                  "    background-color: #333333;"
-                                  "    color: white;"
-                                  "    border: none;"
-                                  "    padding: 5px;"
-                                  "}");
-
-    // Add lines from memoryText
-    QStringList lines = memoryText.split('\n');
-    QTextCursor cursor = memoryTextEdit->textCursor();
-    for (const QString& line : lines) {
-        cursor.insertText(line + "\n");
-    }
-
-    // Resize text edit inside the container
-    memoryTextEdit->setGeometry(0, 0, 400, 300);  // Fit the parent exactly
-}
-
-
-/*void ComputerSimulator::updateCurrentInstruction(const DecodedInstruction&
-instruction)
-{
-    QString coloredInstruction;
-    QString opcodeStr = getOpcodeString(instruction.opcode); // You'll need to
-implement this helper
-
-    // Start with opcode (always present)
-    coloredInstruction = QString("<span style='color:
-#ff6b35;'>%1</span>").arg(opcodeStr);
-
-    // Add destination register if present (rd != 0 or if instruction uses rd)
-    if (instruction.rd != -1 ) {
-        coloredInstruction += QString(" <span style='color:
-#00ff88;'>x%1</span>").arg(instruction.rd);
-
-        // Add comma if there are more operands
-        if (instruction.rs1 != 0 || instruction.immediate != 0 ||
-instruction.rs2 != 0 || instructionUsesRs1(instruction.opcode) ||
-instructionUsesImmediate(instruction.opcode) ||
-            instructionUsesRs2(instruction.opcode)) {
-            coloredInstruction += ",";
-        }
-    }
-
-    // Add first source register if present
-    if (instruction.rs1 != 0 || ) {
-        coloredInstruction += QString(" <span style='color:
-#4dabf7;'>x%1</span>").arg(instruction.rs1);
-
-        // Add comma if there are more operands
-        if (instruction.rs2 != 0 || instruction.immediate != 0 ||
-            instructionUsesRs2(instruction.opcode) ||
-instructionUsesImmediate(instruction.opcode)) { coloredInstruction += ",";
-        }
-    }
-
-    // Add second source register if present (for R-type instructions)
-    if (instruction.rs2 != 0 || instructionUsesRs2(instruction.opcode)) {
-        coloredInstruction += QString(" <span style='color:
-#ff073a;'>x%1</span>").arg(instruction.rs2);
-    }
-    // Add immediate value if present (for I-type instructions)
-    else if (instruction.immediate != 0 ||
-instructionUsesImmediate(instruction.opcode)) { coloredInstruction += QString("
-<span style='color: #ffd700;'>#%1</span>").arg(instruction.immediate);
-    }
-
-    currInstruction->setText(coloredInstruction);
-}
-*/
-/*
-QString ComputerSimulator::getOpcodeString(inst opcode)
-{
-    switch(opcode) {
-    case add: return "ADD";
-    case sub: return "SUB";
-    case addi: return "ADDI";
-    case lw: return "LW";
-    case sw: return "SW";
-    // Add more opcodes as needed
-    default: return "INVALID";
-    }
-}
-
-
-
-*/

@@ -35,47 +35,52 @@ void Memory::write32(uint32_t addr, uint32_t value) {
 bool Memory::loadFromFile(const std::string& filepath, uint32_t startAddress) {
     qDebug() << "Attempting to load binary from:" << QString::fromStdString(filepath);
 
-    // 1. باز کردن فایل
+    if (startAddress == 0) {
+        qCritical() << "-> CRITICAL: Start address cannot be 0.";
+        qCritical() << "-> Address 0 is reserved for the system's reset vector.";
+        qCritical() << "-> Please load the program at a higher address (e.g., 0x0100).";
+        return false;
+    }
+
     std::ifstream file(filepath, std::ios::binary);
-    if (!file.is_open()) { // از is_open() برای بررسی دقیق‌تر استفاده کنید
+    if (!file.is_open()) {
         qCritical() << "-> CRITICAL: Failed to open file. Check path and permissions.";
-        // دلایل احتمالی: فایل وجود ندارد، مسیر اشتباه است، برنامه دسترسی خواندن ندارد.
         return false;
     }
     qDebug() << "-> File opened successfully.";
 
-    // 2. محاسبه اندازه فایل
+
     file.seekg(0, std::ios::end);
     std::streamsize fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
 
     qDebug() << "-> File size detected:" << fileSize << "bytes.";
 
-    // بررسی حالت‌های خاص
+
     if (fileSize == 0) {
         qWarning() << "-> WARNING: File is empty. Nothing to load.";
-        return true; // از نظر فنی خطا نیست، ولی چیزی بارگذاری نمی‌شود
+        return true;
     }
-    if (fileSize < 0) { // اگر tellg با خطا مواجه شود
+    if (fileSize < 0) {
         qCritical() << "-> CRITICAL: Could not determine file size. Stream error.";
         return false;
     }
 
-    // 3. بررسی فضای حافظه
+
     if (startAddress + fileSize > MEM_SIZE) {
         qCritical() << "-> CRITICAL: Not enough memory to load the file.";
         return false;
     }
     qDebug() << "-> Memory check passed.";
 
-    // 4. خواندن داده‌ها
+
     qDebug() << "-> Reading" << fileSize << "bytes into memory at address" << startAddress;
     file.read(reinterpret_cast<char*>(data.data() + startAddress), fileSize);
 
-    // بررسی خطاهای احتمالی در حین خواندن
-    if (file.fail() && !file.eof()) { // اگر خطا رخ داده ولی به انتهای فایل نرسیده‌ایم
+
+    if (file.fail() && !file.eof()) {
         qCritical() << "-> CRITICAL: An error occurred while reading the file.";
-        // پاک کردن حافظه از داده‌های ناقص (اختیاری)
+
         std::fill(data.begin() + startAddress, data.begin() + startAddress + fileSize, 0);
         return false;
     }
@@ -156,5 +161,6 @@ QString Memory::dump(uint32_t startAddress, uint32_t numBytes) const {
     }
 
     stream << "--- End of Memory Dump ---\n";
+    qDebug()<<result;
     return result;
 }
