@@ -694,7 +694,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 6) { // T6
-            DR = A + Imm;
+            DR = Alu.add(A, Imm << 1);
             cycleStep++;
         } else if (cycleStep == 7) { // T7
             A = regFile->read(currentInstruction.rs1);
@@ -723,7 +723,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 6) { // T6
-            DR = A + Imm;
+            DR = Alu.add(A, Imm << 1);
             cycleStep++;
         } else if (cycleStep == 7) { // T7
             A = regFile->read(currentInstruction.rs1);
@@ -759,7 +759,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = A + Imm;
+            DR = Alu.add(A, Imm << 1);
             cycleStep++;
         } else if (cycleStep == 9) {
             if (static_cast<int32_t>(tempA) < static_cast<int32_t>(B))
@@ -789,7 +789,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;
             cycleStep++;
         } else if (cycleStep == 8) {
-            DR = A + Imm;
+            DR = Alu.add(A, Imm << 1);
             cycleStep++;
         } else if (cycleStep == 9) {
             if (static_cast<int32_t>(tempA) >= static_cast<int32_t>(B))
@@ -814,7 +814,7 @@ void CPU::executeMicroStep() {
             Imm = currentInstruction.immediate;  // فرض می‌کنیم قبلاً sign-extend شده
             cycleStep++;
         } else if (cycleStep == 6) { // T6
-            DR = A + Imm;
+            DR = Alu.add(A, Imm << 1);
             cycleStep++;
         } else if (cycleStep == 7) {
             A = regFile->read(currentInstruction.rs1);
@@ -928,7 +928,6 @@ void CPU::executeMicroStep() {
         } else if (cycleStep == 6) {
             PC = Alu.and_op(DR, 0xFFFFFFFE);  // ensure alignment
             stage = CPUStage::Fetch1;
-            qDebug() << regFile->read(6) << regFile->read(5);
         }
         break;
 
@@ -1011,7 +1010,7 @@ void CPU::executeMicroStep() {
     default:
         stage = CPUStage::HALT;
         qDebug() << "HALT!";
-        //چجوری متوقف کنم برنامه رو؟
+        exit(0);
         break;
     }
 
