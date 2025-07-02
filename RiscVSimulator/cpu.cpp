@@ -17,6 +17,10 @@ void CPU::decode(uint32_t instruction) {
     uint8_t opcode = instruction & 0x7F;
 
     currentInstruction.opcode = inst::invalid;
+    currentInstruction.has_rd=false;
+    currentInstruction.has_rs1=false;
+    currentInstruction.has_rs2=false;
+    currentInstruction.has_imm=false;
     currentInstruction.rd = (instruction >> 7) & 0x1F;
     uint8_t funct3 = (instruction >> 12) & 0x07;
     currentInstruction.rs1 = (instruction >> 15) & 0x1F;
@@ -27,6 +31,10 @@ void CPU::decode(uint32_t instruction) {
     switch (opcode) {
     // R-type (opcode = 0b0110011)
     case 0b0110011:
+        currentInstruction.has_rd=true;
+        currentInstruction.has_rs1=true;
+        currentInstruction.has_rs2=true;
+
         switch (funct3) {
         case 0x0:
             if (funct7 == 0x00)
@@ -85,6 +93,10 @@ void CPU::decode(uint32_t instruction) {
 
         // I-type ALU immediate (opcode = 0b0010011)
     case 0b0010011: {
+        currentInstruction.has_rd=true;
+        currentInstruction.has_rs1=true;
+        currentInstruction.has_imm=true;
+
         uint32_t imm_12 = (instruction >> 20) & 0xFFF;
         int32_t imm = (imm_12 & 0x800) ? (imm_12 | 0xFFFFF000) : imm_12; // sign-extend 12 بیت
         uint8_t shamt = imm_12 & 0x1F;  // 5 بیت شیفت
@@ -121,6 +133,9 @@ void CPU::decode(uint32_t instruction) {
 
         // I-type Load instructions (opcode = 0b0000011)
     case 0b0000011: {
+        currentInstruction.has_rd=true;
+        currentInstruction.has_rs1=true;
+        currentInstruction.has_imm=true;
         int32_t imm = static_cast<int32_t>(instruction) >> 20;  // sign-extended immediate
         currentInstruction.immediate = imm;
         switch (funct3) {
@@ -136,6 +151,9 @@ void CPU::decode(uint32_t instruction) {
 
         // I-type jalr (opcode = 0b1100111)
     case 0b1100111: {
+        currentInstruction.has_rd=true;
+        currentInstruction.has_rs1=true;
+        currentInstruction.has_imm=true;
         int32_t imm = static_cast<int32_t>(instruction) >> 20;  // sign-extended immediate
         if (funct3 == 0x0)
             currentInstruction.opcode = inst::jalr;
@@ -147,6 +165,9 @@ void CPU::decode(uint32_t instruction) {
 
         // B-type Branch instructions (opcode = 0b1100011)
     case 0b1100011: {
+        currentInstruction.has_imm=true;
+        currentInstruction.has_rs1=true;
+        currentInstruction.has_rs2=true;
         int32_t imm = 0;
         imm |= ((instruction >> 31) & 0x1) << 12;
         imm |= ((instruction >> 7) & 0x1) << 11;
@@ -171,6 +192,9 @@ void CPU::decode(uint32_t instruction) {
 
         // S-type Store instructions (opcode = 0b0100011)
     case 0b0100011: {
+        currentInstruction.has_imm=true;
+        currentInstruction.has_rs1=true;
+        currentInstruction.has_rs2=true;
         int32_t imm = 0;
         imm |= ((instruction >> 25) & 0x7F) << 5;
         imm |= ((instruction >> 7) & 0x1F);
@@ -190,12 +214,16 @@ void CPU::decode(uint32_t instruction) {
 
         // U-type LUI (opcode = 0b0110111)
     case 0b0110111:
+        currentInstruction.has_rd=true;
+        currentInstruction.has_imm=true;
         currentInstruction.immediate = instruction & 0xFFFFF000;
         currentInstruction.opcode = inst::lui;
         break;
 
         // U-type AUIPC (opcode = 0b0010111)
     case 0b0010111:
+        currentInstruction.has_rd=true;
+        currentInstruction.has_imm=true;
         currentInstruction.opcode = inst::auipc;
         currentInstruction.rd = (instruction >> 7) & 0x1F;
         currentInstruction.immediate = instruction >> 12;
@@ -203,6 +231,8 @@ void CPU::decode(uint32_t instruction) {
 
         // J-type JAL (opcode = 0b1101111)
     case 0b1101111: {
+        currentInstruction.has_rd=true;
+        currentInstruction.has_imm=true;
         int32_t imm = 0;
         imm |= ((instruction >> 31) & 0x1) << 20;
         imm |= ((instruction >> 12) & 0xFF) << 12;
@@ -221,6 +251,7 @@ void CPU::decode(uint32_t instruction) {
         currentInstruction.opcode = inst::invalid;
         break;
     }
+    ui->updateCurrInstruction(&currentInstruction);
 }
 
 
@@ -270,6 +301,7 @@ void CPU::clockTick() {
     default:
         break;
     }
+    ui->updateState(cycleStep,stage);
 }
 
 

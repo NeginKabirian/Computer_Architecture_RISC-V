@@ -1,10 +1,10 @@
 #include "mainwindow.h"
-#include "ui_mainwindow.h"
+
 #include<QDir>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-  //  ui->setupUi(this);
+
     memory = new Memory();
     regFile = new RegisterFile();
     cpu = new CPU(memory, regFile);
@@ -28,7 +28,6 @@ MainWindow::~MainWindow()
     delete cpu;
     delete memory;
     delete regFile;
-    delete ui;
 }
 
 // In MainWindow.cpp

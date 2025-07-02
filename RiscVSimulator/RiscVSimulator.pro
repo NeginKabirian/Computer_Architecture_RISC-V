@@ -22,6 +22,7 @@ HEADERS += \
     alu.h \
     computersimulator.h \
     cpu.h \
+    cpuStage.h \
     mainwindow.h \
     memory.h \
     registerfile.h

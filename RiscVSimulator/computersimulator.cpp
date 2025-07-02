@@ -1,11 +1,12 @@
 #include "computersimulator.h"
+#include "DecodedInstruction.h"
+#include "cpu.h"
 #include <QFormLayout>
 #include <QGraphicsColorizeEffect>
 #include <QHeaderView>
 #include <QLineEdit>
 #include <QPropertyAnimation>
 #include <QThread>
-#include "DecodedInstruction.h"
 
 #define numOfReg 32
 #define tableWidth 335
@@ -15,7 +16,7 @@
 
 ComputerSimulator::ComputerSimulator() {
 
-    normalColor = new QColor( QString(bgColor));
+    normalColor = new QColor(QString(bgColor));
     highlightColor = new QColor(QString(hlColor));
     initRegisterFile();
     initSpecRegisters();
@@ -30,6 +31,7 @@ void ComputerSimulator::updateRegisterFile(int index, QString content) {
         registerFile
             ->item(registerFileHighlightedRow, registerFileHighlightedCol + 1)
             ->setText(content);
+        registerFile->resizeColumnsToContents();
     } else
         qDebug() << "invalid register number!";
 }
@@ -51,6 +53,86 @@ void ComputerSimulator::updateSpecRegs(QString name, QString content) {
         immLineEdit->setText(content);
     }
 }
+
+void ComputerSimulator::updateState(int cycle, CPUStage stage) {
+    QString stageText;
+
+    switch (stage) {
+    case CPUStage::Fetch1: {
+        stageText = "FETCH1";
+        break;
+    }
+    case CPUStage::Fetch2: {
+        stageText = "FETCH2";
+        break;
+    }
+    case CPUStage::Decode: {
+        stageText = "DECODE";
+        break;
+    }
+    case CPUStage::Exec: {
+        stageText = "EXEC";
+        break;
+    }
+    case CPUStage::HALT: {
+        stageText = "HALT";
+        break;
+    }
+    case CPUStage::Mem: {
+        stageText = "MEM";
+        break;
+    }
+    case CPUStage::WriteBack: {
+        stageText = "WriteBack";
+        break;
+    }
+
+    default:
+        break;
+    }
+    this->stage->setText(stageText);
+    cycleStep->setText(QString::number(cycle));
+}
+
+void ComputerSimulator::updateCurrInstruction(DecodedInstruction *curr)
+{
+    QString result = "opcode: ";
+
+    // Convert opcode enum to string
+    static const char* inst_names[] = {
+        "add", "sub", "xor", "or", "and", "sll", "srl", "sra", "slt", "sltu",
+        "addi", "ori", "andi", "slli", "srli", "lb", "lh", "lw", "lbu", "lhu",
+        "sb", "sh", "sw", "beq", "bne", "blt", "bge", "bltu", "bgeu",
+        "jal", "jalr", "lui", "auipc",
+        "mul", "mulh", "mulhsu", "mulhu", "div", "divu", "rem", "remu",
+        "invalid"
+    };
+
+    if (curr->opcode >= 0 && curr->opcode <= invalid) {
+        result += inst_names[static_cast<int>(curr->opcode)];
+    } else {
+        result += "unknown";
+    }
+
+    if (curr->has_rd) {
+        result += QString(" rd:0x%1").arg(curr->rd, 2, 16, QLatin1Char('0'));
+    }
+
+    if (curr->has_rs1) {
+        result += QString(" rs1:0x%1").arg(curr->rs1, 2, 16, QLatin1Char('0'));
+    }
+
+    if (curr->has_rs2) {
+        result += QString(" rs2:0x%1").arg(curr->rs2, 2, 16, QLatin1Char('0'));
+    }
+
+    if (curr->has_imm) {
+        result += QString(" imm:%1").arg(curr->immediate);
+    }
+
+    currInstruction->setText(result); // assuming currInstruction is a QLineEdit*
+}
+
 
 void ComputerSimulator::initRegisterFile() {
     registerFileHighlightedRow = -1;
@@ -173,6 +255,14 @@ void ComputerSimulator::initSpecRegisters() {
     bLineEdit->setReadOnly(true);
     immLineEdit->setReadOnly(true);
 
+    pcLineEdit->setText("0x00000000");
+    irLineEdit->setText("0x00000000");
+    drLineEdit->setText("0x00000000");
+    arLineEdit->setText("0x0000");
+    aLineEdit->setText("0x00000000");
+    bLineEdit->setText("0x00000000");
+    immLineEdit->setText("0x00000000");
+
     // Add widgets to form layout with labels
     // formLayout->addRow("CPU Stage:", stageLineEdit);
     // formLayout->addRow("Cycle Step:", cycleStepLineEdit);
@@ -207,14 +297,14 @@ void ComputerSimulator::initSpecRegisters() {
                                                           "    border: 1px solid #666666;"
                                                           "    padding: 3px;"
                                                           "    font-family: 'Courier New', monospace;"
-                                                          "    font-size: 11px;"
+                                                          "    font-size: 15px;"
                                                           "}"
                                                           "QLineEdit:focus {"
                                                           "    border: 2px solid #0066cc;"
                                                           "}");
 
     // Position the widget
-    specialRegsWidget->setGeometry(20, 20, 250, 360);
+    specialRegsWidget->setGeometry(635, 180, 250, 360);
 }
 
 void ComputerSimulator::initPulse() {
@@ -228,80 +318,74 @@ void ComputerSimulator::initPulse() {
                                               " color: #ff8b00;"
                                               " border-radius: 5px;"
                                               "}");
-    pulse->setGeometry(50, 450, 70, 50);
+    pulse->setGeometry(900, 450, 70, 50);
     pulse->setText("PULSE");
     pulse->setFont(QFont("Berlin Sans FB Demi", 15, QFont::Bold, false));
 }
 
-void ComputerSimulator::initControlState()
-{
-   auto controlRegsWidget = new QWidget(this);
+void ComputerSimulator::initControlState() {
+    // Create container widget
+    controlRegsWidget = new QWidget(this);
 
-    // Create the form layout
+    // Create form layout
     QFormLayout *formLayout = new QFormLayout(controlRegsWidget);
+    formLayout->setVerticalSpacing(10);
 
-    // Create and style the QLineEdit components
+    // Create line edits
     stage = new QLineEdit();
     cycleStep = new QLineEdit();
     currInstruction = new QLineEdit();
+    currInstruction->setMinimumWidth(400);
+    currInstruction->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
-    // Apply styling to all QLineEdit components
-    QString lineEditStyle =
-        "QLineEdit {"
-        "    border: 2px solid red;"
-        "    background-color: #2b2b2b;"
-        "    color: white;"
-        "    padding: 5px;"
-        "    font-family: 'Courier New', monospace;"
-        "    font-size: 12px;"
-        "}";
-
-    stage->setStyleSheet(lineEditStyle);
-    cycleStep->setStyleSheet(lineEditStyle);
-    currInstruction->setStyleSheet(lineEditStyle);
-
-    // Make them read-only if they're for display purposes
+    // Set read-only and default text
     stage->setReadOnly(true);
     cycleStep->setReadOnly(true);
     currInstruction->setReadOnly(true);
 
-    // Add rows to the form layout with labels
+    stage->setText("Fetch");
+    cycleStep->setText("0");
+    currInstruction->setText("NOP");
+
+    // Add widgets to layout with labels
     formLayout->addRow("Stage:", stage);
     formLayout->addRow("Cycle Step:", cycleStep);
     formLayout->addRow("Current Instruction:", currInstruction);
 
-    // Style the form layout container (optional)
-    QWidget *formWidget = new QWidget();
-    formWidget->setLayout(formLayout);
-    formWidget->setStyleSheet(
-        "QWidget {"
-        "    background-color: #2b2b2b;"
-        "}"
-        "QLabel {"
-        "    color: white;"
-        "    font-weight: bold;"
-        "    padding-right: 10px;"
-        "}"
-        );
+    // Style the control registers widget
+    controlRegsWidget->setStyleSheet("QWidget {"
+                                     "    background-color:" +
+                                     QString(bgColor) +
+                                     ";"
+                                                          "    border: 2px solid #ffcc00;"
+                                                          "    border-radius: 5px;"
+                                                          "    padding: 10px;"
+                                                          "}"
+                                                          "QLabel {"
+                                                          "    color: white;"
+                                                          "    font-weight: bold;"
+                                                          "    font-size: 12px;"
+                                                          "    min-height: 25px;"
+                                                          "    max-height: 25px;"
+                                                          "    padding: 1px;"
+                                                          "}"
+                                                          "QLineEdit {"
+                                                          "    background-color: #404040;"
+                                                          "    color: white;"
+                                                          "    border: 1px solid #666666;"
+                                                          "    padding: 3px;"
+                                                          "    font-family: 'Courier New', monospace;"
+                                                          "    font-size: 15px;"
+                                                          " font-weight: bold;"
+                                                          "}"
+                                                          "QLineEdit:focus {"
+                                                          "    border: 2px solid #ffcc00;"
+                                                          "}");
+
     // Position the widget
-    controlRegsWidget->setGeometry(500, 500, 250, 360);
-    controlRegsWidget->show();
+    controlRegsWidget->setGeometry(635, 20, 550, 150);
+
 }
-/* void ComputerSimulator::resizeEvent(QResizeEvent* event)
- {
-     QWidget::resizeEvent(event);
-
-     if (registerFile ) {
-         registerFile->setGeometry(
-             width() - tableWidth - 20,
-             20,
-             tableWidth,
-             tableHeight
-             );
-     }
- }
-
-*/
 
 void ComputerSimulator::highlightRegister(int index) {
     // Clear previous highlight
@@ -320,9 +404,11 @@ void ComputerSimulator::highlightRegister(int index) {
          col < registerFileHighlightedCol + 2; ++col) {
         QTableWidgetItem *item = registerFile->item(index, col);
         if (item) {
-            item->setBackground(*highlightColor);
+            item->setData(Qt::BackgroundRole, QColor(Qt::yellow));
+
             item->setFont(
                 QFont(item->font().family(), item->font().pointSize(), QFont::Bold));
+            item->setForeground(QBrush(QColor(Qt::green))); // font color
         }
     }
 }
@@ -334,7 +420,7 @@ void ComputerSimulator::clearHighlight() {
             QTableWidgetItem *item =
                 registerFile->item(registerFileHighlightedRow, col);
             if (item) {
-                item->setBackground(*normalColor);
+                item->setForeground(QBrush(QColor(Qt::white)));
                 QFont font = item->font();
                 font.setBold(false);
                 item->setFont(font);
@@ -344,25 +430,26 @@ void ComputerSimulator::clearHighlight() {
     }
 }
 
-
-
-
-
-/*void ComputerSimulator::updateCurrentInstruction(const DecodedInstruction& instruction)
+/*void ComputerSimulator::updateCurrentInstruction(const DecodedInstruction&
+instruction)
 {
     QString coloredInstruction;
-    QString opcodeStr = getOpcodeString(instruction.opcode); // You'll need to implement this helper
+    QString opcodeStr = getOpcodeString(instruction.opcode); // You'll need to
+implement this helper
 
     // Start with opcode (always present)
-    coloredInstruction = QString("<span style='color: #ff6b35;'>%1</span>").arg(opcodeStr);
+    coloredInstruction = QString("<span style='color:
+#ff6b35;'>%1</span>").arg(opcodeStr);
 
     // Add destination register if present (rd != 0 or if instruction uses rd)
     if (instruction.rd != -1 ) {
-        coloredInstruction += QString(" <span style='color: #00ff88;'>x%1</span>").arg(instruction.rd);
+        coloredInstruction += QString(" <span style='color:
+#00ff88;'>x%1</span>").arg(instruction.rd);
 
         // Add comma if there are more operands
-        if (instruction.rs1 != 0 || instruction.immediate != 0 || instruction.rs2 != 0 ||
-            instructionUsesRs1(instruction.opcode) || instructionUsesImmediate(instruction.opcode) ||
+        if (instruction.rs1 != 0 || instruction.immediate != 0 ||
+instruction.rs2 != 0 || instructionUsesRs1(instruction.opcode) ||
+instructionUsesImmediate(instruction.opcode) ||
             instructionUsesRs2(instruction.opcode)) {
             coloredInstruction += ",";
         }
@@ -370,22 +457,25 @@ void ComputerSimulator::clearHighlight() {
 
     // Add first source register if present
     if (instruction.rs1 != 0 || ) {
-        coloredInstruction += QString(" <span style='color: #4dabf7;'>x%1</span>").arg(instruction.rs1);
+        coloredInstruction += QString(" <span style='color:
+#4dabf7;'>x%1</span>").arg(instruction.rs1);
 
         // Add comma if there are more operands
         if (instruction.rs2 != 0 || instruction.immediate != 0 ||
-            instructionUsesRs2(instruction.opcode) || instructionUsesImmediate(instruction.opcode)) {
-            coloredInstruction += ",";
+            instructionUsesRs2(instruction.opcode) ||
+instructionUsesImmediate(instruction.opcode)) { coloredInstruction += ",";
         }
     }
 
     // Add second source register if present (for R-type instructions)
     if (instruction.rs2 != 0 || instructionUsesRs2(instruction.opcode)) {
-        coloredInstruction += QString(" <span style='color: #ff073a;'>x%1</span>").arg(instruction.rs2);
+        coloredInstruction += QString(" <span style='color:
+#ff073a;'>x%1</span>").arg(instruction.rs2);
     }
     // Add immediate value if present (for I-type instructions)
-    else if (instruction.immediate != 0 || instructionUsesImmediate(instruction.opcode)) {
-        coloredInstruction += QString(" <span style='color: #ffd700;'>#%1</span>").arg(instruction.immediate);
+    else if (instruction.immediate != 0 ||
+instructionUsesImmediate(instruction.opcode)) { coloredInstruction += QString("
+<span style='color: #ffd700;'>#%1</span>").arg(instruction.immediate);
     }
 
     currInstruction->setText(coloredInstruction);
