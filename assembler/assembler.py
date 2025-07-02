@@ -132,19 +132,19 @@ def encode_s(imm, rs2, rs1, funct3, opcode):
     )
 
 def encode_b(imm, rs2, rs1, funct3, opcode):
-    imm_shifted = imm >> 1  
+    imm = to_signed_imm(imm, 13)
     imm12   = (imm >> 12) & 0x1
-    imm10_5 = (imm >> 5)  & 0x3F
-    imm4_1  = (imm >> 1)  & 0xF
     imm11   = (imm >> 11) & 0x1
+    imm10_5 = (imm >> 5) & 0x3F
+    imm4_1  = (imm >> 1) & 0xF
     return (
-        (imm12   << 31) |
+        (imm12 << 31) |
+        (imm11 << 7) |
         (imm10_5 << 25) |
         ((rs2 & 0x1F) << 20) |
         ((rs1 & 0x1F) << 15) |
         ((funct3 & 0x7) << 12) |
-        (imm4_1  << 8) |
-        (imm11   << 7) |
+        (imm4_1 << 8) |
         (opcode & 0x7F)
     )
 
@@ -183,9 +183,14 @@ def assemble_file(input_filename, output_filename):
     pc = 0
 
     for line in lines:
-        if line.endswith(':'):
-            label = line[:-1].strip()
+        if ':' in line:
+            label_part, *rest = line.split(':')
+            label = label_part.strip()
             symbol_table[label] = pc
+            line = ':'.join(rest).strip()
+            if not line:
+                continue
+
         elif line.startswith('.org'):
             pc = parse_immediate(line.split()[1])
         elif line.startswith('.align'):
@@ -250,7 +255,9 @@ def assemble_file(input_filename, output_filename):
                 rs1 = reg_alias(tokens[1])
                 rs2 = reg_alias(tokens[2])
                 label = tokens[3]
-                offset = symbol_table[label] - pc - 4  
+                if label not in symbol_table:
+                    raise ValueError(f"Unknown label: {label}")
+                offset = symbol_table[label] - (pc + 4)
                 instr = encode_b(offset, rs2, rs1, info['funct3'], info['opcode'])
             elif fmt == 'U':
                 rd = reg_alias(tokens[1])
