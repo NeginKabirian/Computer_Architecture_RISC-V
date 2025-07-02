@@ -132,20 +132,19 @@ def encode_s(imm, rs2, rs1, funct3, opcode):
     )
 
 def encode_b(imm, rs2, rs1, funct3, opcode):
-    imm = to_signed_imm(imm, 13)
-    imm_shift = imm >> 1
-    imm12 = (imm_shift >> 11) & 0x1
-    imm10_5 = (imm_shift >> 5) & 0x3F
-    imm4_1 = (imm_shift >> 1) & 0xF
-    imm11 = (imm_shift >> 10) & 0x1
+    imm_shifted = imm >> 1  
+    imm12   = (imm >> 12) & 0x1
+    imm10_5 = (imm >> 5)  & 0x3F
+    imm4_1  = (imm >> 1)  & 0xF
+    imm11   = (imm >> 11) & 0x1
     return (
-        (imm12 << 31) |
+        (imm12   << 31) |
         (imm10_5 << 25) |
-        (rs2 & 0x1F) << 20 |
-        (rs1 & 0x1F) << 15 |
-        (funct3 & 0x07) << 12 |
-        (imm4_1 << 8) |
-        (imm11 << 7) |
+        ((rs2 & 0x1F) << 20) |
+        ((rs1 & 0x1F) << 15) |
+        ((funct3 & 0x7) << 12) |
+        (imm4_1  << 8) |
+        (imm11   << 7) |
         (opcode & 0x7F)
     )
 
