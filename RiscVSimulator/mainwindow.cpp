@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-
+#include <QThread>
 #include<QDir>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -9,6 +9,7 @@ MainWindow::MainWindow(QWidget *parent)
     regFile = new RegisterFile();
     cpu = new CPU(memory, regFile);
     auto simulator=new ComputerSimulator();
+    simulator->initMemory(memory->dump(0,32));
     cpu->setSimulator(simulator);
     connect(simulator->pulse,&QPushButton::clicked,this,&MainWindow::on_pushButton_clicked);
     connect(regFile,&RegisterFile::registerChanged,simulator,&ComputerSimulator::updateRegisterFile);

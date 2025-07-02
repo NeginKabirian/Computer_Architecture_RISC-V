@@ -28,7 +28,8 @@ public:
 
     void write32(uint32_t addr, uint32_t value);
     bool loadFromFile(const std::string& filepath, uint32_t startAddress);
-    void dump(uint32_t startAddress, uint32_t numBytes) const;
+    //void dump(uint32_t startAddress, uint32_t numBytes) const;
+    QString dump(uint32_t startAddress, uint32_t numBytes) const;
 
 private:
     void check_address(uint32_t addr) const;

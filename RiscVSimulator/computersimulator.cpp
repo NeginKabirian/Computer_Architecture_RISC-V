@@ -9,7 +9,7 @@
 #include <QThread>
 
 #define numOfReg 32
-#define tableWidth 335
+#define tableWidth 400
 #define tableHeight 520
 #define bgColor "#2b2b2b"
 #define hlColor
@@ -429,6 +429,42 @@ void ComputerSimulator::clearHighlight() {
         registerFileHighlightedRow = -1;
     }
 }
+
+void ComputerSimulator::initMemory(QString memoryText) {
+    // Create a container widget for the memory display
+    memoryWidget = new QWidget(this);
+
+    // Set geometry and style
+    memoryWidget->setGeometry(1200, 0, 400, 300);  // Adjust position/size
+    memoryWidget->setStyleSheet("QWidget {"
+                                "    background-color: #222222;"
+                                "    border: 2px solid #aa00ff;"
+                                "    border-radius: 5px;"
+                                "    padding: 10px;"
+                                "}");
+
+    // Create a QTextEdit to display memory
+    memoryTextEdit = new QTextEdit(memoryWidget);
+    memoryTextEdit->setReadOnly(true);
+    memoryTextEdit->setFont(QFont("Courier New", 11));
+    memoryTextEdit->setStyleSheet("QTextEdit {"
+                                  "    background-color: #333333;"
+                                  "    color: white;"
+                                  "    border: none;"
+                                  "    padding: 5px;"
+                                  "}");
+
+    // Add lines from memoryText
+    QStringList lines = memoryText.split('\n');
+    QTextCursor cursor = memoryTextEdit->textCursor();
+    for (const QString& line : lines) {
+        cursor.insertText(line + "\n");
+    }
+
+    // Resize text edit inside the container
+    memoryTextEdit->setGeometry(0, 0, 400, 300);  // Fit the parent exactly
+}
+
 
 /*void ComputerSimulator::updateCurrentInstruction(const DecodedInstruction&
 instruction)

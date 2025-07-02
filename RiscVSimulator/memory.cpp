@@ -105,7 +105,7 @@ void Memory::check_address(uint32_t addr) const {
         throw std::out_of_range("Memory access out of range");
     }
 }
-void Memory::dump(uint32_t startAddress, uint32_t numBytes) const {
+/*void Memory::dump(uint32_t startAddress, uint32_t numBytes) const {
     qDebug() << "\n--- Memory Dump from" << QString("0x%1").arg(startAddress, 8, 16, QChar('0')) << "---";
 
     for (uint32_t i = 0; i < numBytes; i += 4) {
@@ -114,7 +114,6 @@ void Memory::dump(uint32_t startAddress, uint32_t numBytes) const {
 
         uint32_t word = read32(addr);
 
-        // ساختن رشته برای بایت‌های خام
         QString rawBytes = QString("(%1 %2 %3 %4)")
                                .arg(data[addr], 2, 16, QChar('0'))
                                .arg(data[addr+1], 2, 16, QChar('0'))
@@ -127,4 +126,35 @@ void Memory::dump(uint32_t startAddress, uint32_t numBytes) const {
                                   .arg(rawBytes);
     }
     qDebug() << "--- End of Memory Dump ---\n";
+}
+*/
+
+
+QString Memory::dump(uint32_t startAddress, uint32_t numBytes) const {
+    QString result;
+    QTextStream stream(&result);
+
+    stream << "\n--- Memory Dump from "
+           << QString("0x%1").arg(startAddress, 8, 16, QChar('0')) << " ---\n";
+
+    for (uint32_t i = 0; i < numBytes; i += 4) {
+        uint32_t addr = startAddress + i;
+        if (addr + 3 >= MEM_SIZE) break;
+
+        uint32_t word = read32(addr);
+
+        QString rawBytes = QString("(%1 %2 %3 %4)")
+                               .arg(data[addr], 2, 16, QChar('0'))
+                               .arg(data[addr+1], 2, 16, QChar('0'))
+                               .arg(data[addr+2], 2, 16, QChar('0'))
+                               .arg(data[addr+3], 2, 16, QChar('0'));
+
+        stream << QString("0x%1: 0x%2  %3\n")
+                      .arg(addr, 8, 16, QChar('0'))
+                      .arg(word, 8, 16, QChar('0'))
+                      .arg(rawBytes);
+    }
+
+    stream << "--- End of Memory Dump ---\n";
+    return result;
 }

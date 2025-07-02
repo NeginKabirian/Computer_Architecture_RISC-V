@@ -3,6 +3,7 @@
 
 #include <QPushButton>
 #include <QTableWidget>
+#include <QTextEdit>
 #include "DecodedInstruction.h"
 #include "cpuStage.h"
 
@@ -12,7 +13,7 @@ class ComputerSimulator : public QWidget {
 public:
     ComputerSimulator();
     QPushButton *pulse;
-
+    void initMemory(QString );
 public slots:
     void updateRegisterFile(int index, QString content);
     void updateSpecRegs(QString name, QString content);
@@ -31,6 +32,7 @@ private:
     void highlightRegister(int index);
     void clearHighlight();
 
+
     int registerFileHighlightedRow;
     int registerFileHighlightedCol;
     QColor *normalColor;
@@ -48,6 +50,8 @@ private:
     QLineEdit *stage;
     QLineEdit *cycleStep;
     QLineEdit *currInstruction;
+    QWidget* memoryWidget;
+    QTextEdit* memoryTextEdit;
 };
 
 #endif // COMPUTERSIMULATOR_H

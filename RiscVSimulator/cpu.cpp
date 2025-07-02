@@ -498,7 +498,7 @@ void CPU::executeMicroStep() {
             B = regFile->read(currentInstruction.rs2);
             cycleStep++;
         } else if (cycleStep == 5) {
-            DR = Alu.sra(A, B & 0x1F); // تابع sra باید توی ALU تعریف شده باشه
+            DR = Alu.sra(A, B & 0x1F); 
             cycleStep++;
         } else if (cycleStep == 6) {
             regFile->write(currentInstruction.rd, DR);
