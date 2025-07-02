@@ -30,6 +30,9 @@ void Memory::write32(uint32_t addr, uint32_t value) {
     data[addr + 1] = (value >> 8) & 0xFF;
     data[addr + 2] = (value >> 16) & 0xFF;
     data[addr + 3] = (value >> 24) & 0xFF;
+    qDebug() << "Wrote to memory at" << QString::number(addr, 16)
+             << ":" << QString::number(value, 16);
+    emit memoryChanged(addr, 4);
 }
 
 bool Memory::loadFromFile(const std::string& filepath, uint32_t startAddress) {

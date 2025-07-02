@@ -11,7 +11,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
         std::cerr << "Halting simulation due to file loading error." << std::endl;
     }
     qDebug() << "Current working directory:" << QDir::currentPath();
-    simulator->initMemory(memory->dump(0, 32));
+    simulator->initMemory(memory);
     cpu->setSimulator(simulator);
     connect(regFile, &RegisterFile::registerChanged, simulator,
             &ComputerSimulator::updateRegisterFile);
@@ -22,9 +22,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     simulationTimer = new QTimer(this);
 
     connect(simulationTimer, &QTimer::timeout, this, &MainWindow::simulationStep);
-
-
-
+    connect(memory, &Memory::memoryChanged, simulator, &ComputerSimulator::updateMemoryDump);
 
 }
 
