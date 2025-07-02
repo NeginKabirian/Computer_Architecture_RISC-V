@@ -13,7 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(simulator->pulse,&QPushButton::clicked,this,&MainWindow::on_pushButton_clicked);
     connect(regFile,&RegisterFile::registerChanged,simulator,&ComputerSimulator::updateRegisterFile);
     const std::string binaryPath = "assembletest.bin";
-    if (!memory->loadFromFile(binaryPath, 0x0)) {
+    if (!memory->loadFromFile(binaryPath, 0x1000)) {
         std::cerr << "Halting simulation due to file loading error." << std::endl;
     }
     qDebug() << "Current working directory:" << QDir::currentPath();

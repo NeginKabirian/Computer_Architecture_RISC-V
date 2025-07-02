@@ -35,6 +35,12 @@ void Memory::write32(uint32_t addr, uint32_t value) {
 bool Memory::loadFromFile(const std::string& filepath, uint32_t startAddress) {
     qDebug() << "Attempting to load binary from:" << QString::fromStdString(filepath);
 
+    if (startAddress == 0) {
+        qCritical() << "-> CRITICAL: Start address cannot be 0.";
+        qCritical() << "-> Address 0 is reserved for the system's reset vector.";
+        qCritical() << "-> Please load the program at a higher address (e.g., 0x0100).";
+        return false;
+    }
     // 1. باز کردن فایل
     std::ifstream file(filepath, std::ios::binary);
     if (!file.is_open()) { // از is_open() برای بررسی دقیق‌تر استفاده کنید
