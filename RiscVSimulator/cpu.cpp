@@ -896,7 +896,6 @@ void CPU::executeMicroStep() {
         } else if (cycleStep == 6) {
             PC = Alu.and_op(DR, 0xFFFFFFFE);  // ensure alignment
             stage = CPUStage::Fetch1;
-            qDebug() << regFile->read(6) << regFile->read(5);
         }
         break;
 
