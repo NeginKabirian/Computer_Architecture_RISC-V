@@ -481,7 +481,7 @@ void ComputerSimulator::highlightRegister(int index) {
         registerFileHighlightedCol = 0;
     else {
         registerFileHighlightedCol = 2;
-    index /= 2;
+    index -=16;
     }
     registerFileHighlightedRow = index;
     for (int col = registerFileHighlightedCol;
