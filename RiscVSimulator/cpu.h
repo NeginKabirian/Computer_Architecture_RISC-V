@@ -16,7 +16,7 @@ private:
     DecodedInstruction currentInstruction;
     CPUStage stage = CPUStage::Fetch1;
     int cycleStep = 0;
-    uint32_t PC = 0;
+    uint32_t PC = 0x1000;
     uint32_t IR = 0;
     uint32_t DR = 0;
     uint16_t AR = 0;
@@ -45,6 +45,7 @@ public:
     uint32_t getA() const { return A; }
     uint32_t getB() const { return B; }
     uint32_t getImm() const { return Imm; }
+    bool isHalted() const { return stage == CPUStage::HALT; }
 };
 
 #endif // CPU_H

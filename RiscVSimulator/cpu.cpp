@@ -6,7 +6,7 @@
 CPU::CPU(Memory* mem, RegisterFile* rf) :  memory(mem),regFile(rf) {}
 
 void CPU::reset() {
-    PC = 0;
+    PC = 0x1000;
     AR = 0;
     IR = 0;
     stage = CPUStage::Fetch1;
