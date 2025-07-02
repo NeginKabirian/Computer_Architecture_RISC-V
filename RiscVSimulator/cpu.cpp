@@ -978,7 +978,7 @@ void CPU::executeMicroStep() {
     default:
         stage = CPUStage::HALT;
         qDebug() << "HALT!";
-        //چجوری متوقف کنم برنامه رو؟
+        exit(0);
         break;
     }
 
