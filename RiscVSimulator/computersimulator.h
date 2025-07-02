@@ -2,6 +2,7 @@
 #define COMPUTERSIMULATOR_H
 
 #include "DecodedInstruction.h"
+#include "memory.h"
 #include "cpuStage.h"
 #include <QPushButton>
 #include <QSpinBox>
@@ -16,7 +17,9 @@ public:
     QPushButton *pushButton;
     QPushButton *stopButton;
     QSpinBox *speedSpinBox;
-    void initMemory(QString);
+    void initMemory(Memory* memory);
+    void updateMemoryDump();
+
 public slots:
     void updateRegisterFile(int index, QString content);
     void updateSpecRegs(QString name, QString content);
@@ -34,6 +37,8 @@ private:
     void initControlState();
     void highlightRegister(int index);
     void clearHighlight();
+    Memory* memoryRef = nullptr;
+
 
     int registerFileHighlightedRow;
     int registerFileHighlightedCol;

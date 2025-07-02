@@ -435,7 +435,7 @@ void ComputerSimulator::initControlState() {
 
 }
 
-void ComputerSimulator::initMemory(QString memoryText) {
+/*void ComputerSimulator::initMemory(QString memoryText) {
     int borderThickness = 3;  
     int width = 360 +2*borderThickness;
     int height = 300 + 2 * borderThickness;
@@ -468,7 +468,7 @@ void ComputerSimulator::initMemory(QString memoryText) {
 
     // Set text
     memoryTextEdit->setPlainText(memoryText);
-}
+}*/
 
 
 void ComputerSimulator::highlightRegister(int index) {
@@ -513,3 +513,46 @@ void ComputerSimulator::clearHighlight() {
         registerFileHighlightedRow = -1;
     }
 }
+
+void ComputerSimulator::initMemory(Memory* memory) {
+    this->memoryRef = memory;
+
+    if (!memoryTextEdit) {
+        int borderThickness = 3;
+        int width = 360 + 2 * borderThickness;
+        int height = 300 + 2 * borderThickness;
+
+        memoryWidget = new QWidget(this);
+        memoryWidget->setGeometry(705, 165, width, height);
+        memoryWidget->setStyleSheet(QString(
+                                        "QWidget {"
+                                        " background-color: #222222;"
+                                        " border: %1px solid #aa00ff;"
+                                        " border-radius: 5px;"
+                                        " padding: 10px;"
+                                        "}").arg(borderThickness));
+
+        memoryTextEdit = new QTextEdit(memoryWidget);
+        memoryTextEdit->setReadOnly(true);
+        memoryTextEdit->setFont(QFont("Courier New", 11));
+        memoryTextEdit->setStyleSheet(
+            "QTextEdit {"
+            " background-color: #333333;"
+            " color: white;"
+            " border: none;"
+            " padding: 5px;"
+            "}");
+        memoryTextEdit->setGeometry(borderThickness, borderThickness, 360, 300);
+        memoryWidget->show();
+    }
+    updateMemoryDump();
+}
+
+
+void ComputerSimulator::updateMemoryDump() {
+    if (!memoryRef || !memoryTextEdit) return;
+    QString dumpText = memoryRef->dump(0x1000, 32);
+    memoryTextEdit->setPlainText(dumpText);
+}
+
+

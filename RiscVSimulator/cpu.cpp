@@ -1018,7 +1018,7 @@ void CPU::executeMicroStep() {
     });
     break;
     }
-
+    ui->updateMemoryDump();
     ui->updateSpecRegs("A", QString("0x%1").arg(A, 8, 16, QChar('0')).toUpper());
     ui->updateSpecRegs("B", QString("0x%1").arg(B, 8, 16, QChar('0')).toUpper());
     ui->updateSpecRegs("IR", QString("0x%1").arg(IR, 8, 16, QChar('0')).toUpper());

@@ -8,7 +8,10 @@
 #include<iostream>
 #include <QString>
 #include <QDebug>
-class Memory {
+#include <QObject>
+
+class Memory : public QObject {
+    Q_OBJECT
 private:
     static constexpr uint32_t MEM_SIZE = 64 * 1024; // 64KB
     std::vector<uint8_t> data;
@@ -33,6 +36,9 @@ public:
 
 private:
     void check_address(uint32_t addr) const;
+signals:
+    void memoryChanged(uint32_t address, uint32_t size);
+
 };
 
 #endif // MEMORY_H
