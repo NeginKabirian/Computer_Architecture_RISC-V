@@ -3,6 +3,9 @@
 
 #include <QPushButton>
 #include <QTableWidget>
+#include "DecodedInstruction.h"
+#include "cpuStage.h"
+
 
 class ComputerSimulator : public QWidget {
     Q_OBJECT
@@ -13,6 +16,8 @@ public:
 public slots:
     void updateRegisterFile(int index, QString content);
     void updateSpecRegs(QString name, QString content);
+    void updateState(int cycle, CPUStage stage);
+    void updateCurrInstruction(DecodedInstruction *curr);
 
 protected:
            // void resizeEvent(QResizeEvent* event) override;
@@ -32,6 +37,7 @@ private:
     QColor *highlightColor; // Light yellow...
 
     QWidget *specialRegsWidget;
+   QWidget *  controlRegsWidget;
     QLineEdit *pcLineEdit;
     QLineEdit *irLineEdit;
     QLineEdit *drLineEdit;

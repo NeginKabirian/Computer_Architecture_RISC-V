@@ -4,22 +4,12 @@
 #include "alu.h"
 #include "computersimulator.h"
 #include "memory.h"
-#include <iostream>
 #include <RegisterFile.h>
 #include <cstdint>
 #include "DecodedInstruction.h"
-#include <iomanip>
 
 #include <QDebug>
-enum class CPUStage {
-    Fetch1,
-    Fetch2,
-    Decode,
-    Exec,
-    Mem,
-    WriteBack,
-    HALT
-};
+#include "cpuStage.h"
 
 class CPU {
 private:
